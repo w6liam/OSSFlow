@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">noType</string>
+    <string name="accessibility_description">noType inserts dictated text into the text field you are using. It does not read other screens or collect what you type.</string>
+    <string name="bubble_channel_name">Dictation bubble</string>
+    <string name="bubble_channel_description">Shows while the noType bubble is on screen.</string>
+</resources>
