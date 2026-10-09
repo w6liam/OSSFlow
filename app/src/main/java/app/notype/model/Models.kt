@@ -1,5 +1,7 @@
 package app.notype.model
 
+import app.notype.logic.ApiUrls
+
 enum class SttProtocol {
     GROK,
     OPENAI,
@@ -40,11 +42,11 @@ data class AppSettings(
         get() = if (cleanupSameCredentials) sttApiKey else cleanupApiKey
 
     fun normalized(): AppSettings = copy(
-        sttBaseUrl = sttBaseUrl.trim().trimEnd('/'),
+        sttBaseUrl = ApiUrls.normalize(sttBaseUrl),
         sttApiKey = sttApiKey.trim(),
         sttModel = sttModel.trim().ifBlank { DEFAULT_STT_MODEL },
         sttLanguage = sttLanguage.trim().ifBlank { DEFAULT_LANGUAGE },
-        cleanupBaseUrl = cleanupBaseUrl.trim().trimEnd('/'),
+        cleanupBaseUrl = ApiUrls.normalize(cleanupBaseUrl),
         cleanupApiKey = cleanupApiKey.trim(),
         cleanupModel = cleanupModel.trim().ifBlank { DEFAULT_CLEANUP_MODEL },
     )

@@ -83,10 +83,13 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             label = { Text("Base URL") },
             supportingText = {
                 Text(
-                    if (draft.sttProtocol == SttProtocol.GROK) {
-                        "Grok uses /stt on this URL."
-                    } else {
-                        "OpenAI-compatible endpoints use /audio/transcriptions."
+                    when {
+                        draft.sttBaseUrl.contains("openrouter.ai", ignoreCase = true) ->
+                            "OpenRouter's base URL is https://openrouter.ai/api/v1."
+                        draft.sttProtocol == SttProtocol.GROK ->
+                            "Grok uses /stt on this URL."
+                        else ->
+                            "OpenAI-compatible endpoints use /audio/transcriptions."
                     },
                 )
             },

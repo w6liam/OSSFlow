@@ -37,6 +37,11 @@ class GrokSttClient(private val http: OkHttpClient) : TranscriptionClient {
 }
 
 internal fun transcriptText(body: String): String {
+    if (looksLikeHtml(body)) {
+        throw IllegalStateException(
+            "The transcription URL returned a web page. Check the base URL in Settings.",
+        )
+    }
     val text = try {
         JSONObject(body).optString("text")
     } catch (_: Exception) {
