@@ -32,4 +32,35 @@ class CleanupTextTest {
     fun leavesOrdinaryTextAlone() {
         assertEquals("See you there.", CleanupText.withoutLabel("See you there.", "see you there"))
     }
+
+    @Test
+    fun stripsAnUnspokenMessageBeforeASpace() {
+        assertEquals("Buy milk.", CleanupText.withoutLabel("Message Buy milk.", "buy milk"))
+    }
+
+    @Test
+    fun stripsAnUnspokenMessageBeforeAPeriod() {
+        assertEquals("Buy milk.", CleanupText.withoutLabel("Message. Buy milk.", "buy milk"))
+    }
+
+    @Test
+    fun stripsAQuotedMessageLabel() {
+        assertEquals("Buy milk.", CleanupText.withoutLabel("\"Message: Buy milk.\"", "buy milk"))
+    }
+
+    @Test
+    fun stripsAPreambleWhenTheLabelWasNotSpoken() {
+        assertEquals(
+            "Buy milk.",
+            CleanupText.withoutLabel("Here's your message: Buy milk.", "buy milk"),
+        )
+    }
+
+    @Test
+    fun keepsMessageWhenTheSpeakerSaidIt() {
+        assertEquals(
+            "Message to Bob.",
+            CleanupText.withoutLabel("Message to Bob.", "send a message to Bob"),
+        )
+    }
 }

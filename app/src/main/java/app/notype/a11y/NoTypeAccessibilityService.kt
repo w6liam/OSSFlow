@@ -89,6 +89,11 @@ class NoTypeAccessibilityService : AccessibilityService() {
     fun insertIntoFocusedField(text: String): Boolean {
         val node = usableNode() ?: return false
         if (node.isPassword) return false
+        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        node.refresh()
+        val clipboard = getSystemService(ClipboardManager::class.java)
+        clipboard.setPrimaryClip(ClipData.newPlainText("noType", text))
+        if (node.performAction(AccessibilityNodeInfo.ACTION_PASTE)) return true
         val exposed = node.text
         if (exposed != null) {
             val merged = TextSplice.splice(
@@ -102,11 +107,7 @@ class NoTypeAccessibilityService : AccessibilityService() {
             }
             if (node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) return true
         }
-        val clipboard = getSystemService(ClipboardManager::class.java)
-        clipboard.setPrimaryClip(ClipData.newPlainText("noType", text))
-        if (node.performAction(AccessibilityNodeInfo.ACTION_PASTE)) return true
-        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-        return node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        return false
     }
 
     private fun usableNode(): AccessibilityNodeInfo? {
