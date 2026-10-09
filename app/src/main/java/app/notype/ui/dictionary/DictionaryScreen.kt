@@ -3,7 +3,6 @@ package app.notype.ui.dictionary
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,7 +57,7 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
                     if (entries.size >= DictionaryTerms.MAX_TERMS) {
                         onMessage("The dictionary holds ${DictionaryTerms.MAX_TERMS} words.")
                     } else {
-                        editor = EditorState(null, "", "", suggesting = false)
+                        editor = EditorState(null, "", "")
                     }
                 },
             ) {
@@ -75,7 +74,7 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
         ) {
             item {
                 Text(
-                    "Add a word. noType asks the cleanup model how a recognizer might hear it, and you can add more.",
+                    "Add a word you want written correctly.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -83,7 +82,7 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
             if (entries.isEmpty()) {
                 item {
                     Text(
-                        "Nothing here yet. Add a word, for example LawVu or Sissi.",
+                        "Nothing here yet. Add a name or a product, such as Maya or Keynote.",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
@@ -94,21 +93,16 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                editor = EditorState(entry.id, entry.spelling, entry.heardAs, suggesting = false)
+                                editor = EditorState(entry.id, entry.spelling, entry.heardAs)
                             }
                             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(entry.spelling, style = MaterialTheme.typography.titleMedium)
-                            if (entry.heardAs.isNotBlank()) {
-                                Text(
-                                    "Heard as ${entry.heardAs}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        Text(
+                            entry.spelling,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
                         IconButton(onClick = { scope.launch { dao.delete(entry.id) } }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete ${entry.spelling}")
                         }
@@ -123,7 +117,7 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
         DictionaryEditor(
             state = current,
             onDismiss = { editor = null },
-            onSave = { spelling, heardAs ->
+            onSave = { spelling ->
                 scope.launch {
                     val trimmed = spelling.trim()
                     if (trimmed.isEmpty()) {
@@ -143,40 +137,27 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
                         editor = null
                         when (val heard = suggestMishearings(context, trimmed, "")) {
                             SuggestOutcome.MissingKey ->
-                                onMessage("Saved. Add an API key to suggest mishearings.")
+                                onMessage("Saved. Mishearings were not added. Add an API key.")
                             SuggestOutcome.Failed ->
-                                onMessage("Saved. Suggestions were not added.")
+                                onMessage("Saved. Mishearings were not added.")
                             is SuggestOutcome.Ready -> {
-                                if (heard.heardAs.isBlank()) {
-                                    onMessage("Saved. No mishearings suggested.")
-                                } else {
-                                    dao.update(DictionaryEntity(id = id, spelling = trimmed, heardAs = heard.heardAs))
-                                    onMessage("Saved")
+                                if (heard.heardAs.isNotBlank()) {
+                                    dao.update(
+                                        DictionaryEntity(id = id, spelling = trimmed, heardAs = heard.heardAs),
+                                    )
                                 }
+                                onMessage("Saved")
                             }
                         }
                     } else {
-                        dao.update(DictionaryEntity(id = current.id, spelling = trimmed, heardAs = heardAs.trim()))
+                        dao.update(
+                            DictionaryEntity(
+                                id = current.id,
+                                spelling = trimmed,
+                                heardAs = current.heardAs,
+                            ),
+                        )
                         editor = null
-                    }
-                }
-            },
-            onSuggest = { spelling, heardAs, onResult ->
-                scope.launch {
-                    editor = editor?.copy(suggesting = true)
-                    val heard = suggestMishearings(context, spelling, heardAs)
-                    editor = editor?.copy(suggesting = false)
-                    when (heard) {
-                        SuggestOutcome.MissingKey -> onMessage("Add an API key to suggest mishearings.")
-                        SuggestOutcome.Failed -> onMessage("Suggestions were not added.")
-                        is SuggestOutcome.Ready -> {
-                            if (DictionaryTerms.parseHeardAs(heard.heardAs).size ==
-                                DictionaryTerms.parseHeardAs(heardAs).size
-                            ) {
-                                onMessage("No new mishearings suggested.")
-                            }
-                            onResult(heard.heardAs)
-                        }
                     }
                 }
             },
@@ -209,57 +190,34 @@ private data class EditorState(
     val id: Long?,
     val spelling: String,
     val heardAs: String,
-    val suggesting: Boolean,
 )
 
 @Composable
 private fun DictionaryEditor(
     state: EditorState,
     onDismiss: () -> Unit,
-    onSave: (spelling: String, heardAs: String) -> Unit,
-    onSuggest: (spelling: String, heardAs: String, onResult: (String) -> Unit) -> Unit,
+    onSave: (spelling: String) -> Unit,
 ) {
     var spelling by remember(state.id, state.spelling) { mutableStateOf(state.spelling) }
-    var heardAs by remember(state.id) { mutableStateOf(state.heardAs) }
     val tooLong = spelling.trim().length > DictionaryTerms.MAX_CHARS
-    val adding = state.id == null
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (adding) "Add word" else "Edit word") },
+        title = { Text(if (state.id == null) "Add word" else "Edit word") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = spelling,
-                    onValueChange = { spelling = it },
-                    label = { Text("Word") },
-                    supportingText = { Text("LawVu") },
-                    isError = tooLong,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (!adding) {
-                    OutlinedTextField(
-                        value = heardAs,
-                        onValueChange = { heardAs = it },
-                        label = { Text("Often heard as") },
-                        supportingText = { Text("Comma-separated. Add any the model missed.") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    TextButton(
-                        onClick = {
-                            onSuggest(spelling.trim(), heardAs) { heardAs = it }
-                        },
-                        enabled = spelling.trim().isNotEmpty() && !state.suggesting,
-                    ) {
-                        Text(if (state.suggesting) "Suggesting…" else "Suggest mishearings")
-                    }
-                }
-            }
+            OutlinedTextField(
+                value = spelling,
+                onValueChange = { spelling = it },
+                label = { Text("Word") },
+                supportingText = { Text("The spelling you want inserted.") },
+                isError = tooLong,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(spelling, heardAs) },
-                enabled = spelling.trim().isNotEmpty() && !tooLong && !state.suggesting,
+                onClick = { onSave(spelling) },
+                enabled = spelling.trim().isNotEmpty() && !tooLong,
             ) { Text("Save") }
         },
         dismissButton = {

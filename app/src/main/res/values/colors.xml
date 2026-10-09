@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple">#5B2EE0</color>
-    <color name="surface">#F7F4FF</color>
+    <color name="ink">#07080D</color>
+    <color name="paper">#F4F1EA</color>
+    <color name="window_background">#F4F1EA</color>
 </resources>

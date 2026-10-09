@@ -1,0 +1,7 @@
+Studio microphone (U+1F399) by OpenMoji — the open-source emoji and icon project.
+https://openmoji.org
+
+mark.svg is the OpenMoji color file, used unmodified.
+mark-mono.svg is the OpenMoji black outline of the same emoji, used unmodified.
+License: CC BY-SA 4.0
+https://creativecommons.org/licenses/by-sa/4.0/

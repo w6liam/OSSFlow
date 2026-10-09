@@ -267,7 +267,7 @@ class BubbleService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(this, BubbleNotifications.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_mark_n)
+            .setSmallIcon(R.drawable.ic_mark_mono)
             .setContentTitle("noType")
             .setContentText(text)
             .setOngoing(true)

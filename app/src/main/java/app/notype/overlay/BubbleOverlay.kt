@@ -39,28 +39,32 @@ class BubbleOverlay(
     private val badgeSize = dp(22)
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
 
+    private val ink = Color.parseColor("#07080D")
+    private val signal = Color.parseColor("#2EE6C7")
+    private val paper = Color.parseColor("#F4F1EA")
+
     private val caption = TextView(context).apply {
-        setTextColor(Color.WHITE)
+        setTextColor(paper)
         textSize = 13f
         maxWidth = dp(220)
         maxLines = 3
         setPadding(dp(10), dp(6), dp(10), dp(6))
-        background = roundRect(Color.parseColor("#1C1B1F"), dp(12))
+        background = roundRect(ink, dp(12))
         visibility = View.GONE
     }
 
     private val circle = View(context).apply {
-        background = circle(Color.parseColor("#5B2EE0"))
+        background = disk(ink, signal)
     }
 
     private val icon = ImageView(context).apply {
         setImageResource(R.drawable.ic_mark_n)
-        scaleType = ImageView.ScaleType.CENTER
+        scaleType = ImageView.ScaleType.FIT_CENTER
     }
 
     private val progress = ProgressBar(context).apply {
         isIndeterminate = true
-        indeterminateTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
+        indeterminateTintList = android.content.res.ColorStateList.valueOf(signal)
         visibility = View.GONE
     }
 
@@ -70,14 +74,14 @@ class BubbleOverlay(
         setTextColor(Color.parseColor("#1C1B1F"))
         textSize = 14f
         includeFontPadding = false
-        background = circle(Color.WHITE)
+        background = disk(Color.WHITE)
         visibility = View.INVISIBLE
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
     private val bubble = FrameLayout(context).apply {
         addView(circle, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
-        addView(icon, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
+        addView(icon, FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER))
         addView(
             progress,
             FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER),
@@ -134,10 +138,10 @@ class BubbleOverlay(
 
     fun setPhase(next: BubblePhase, message: String?) {
         phase = next
-        val purple = Color.parseColor("#5B2EE0")
         when (next) {
             BubblePhase.Idle -> {
-                circle.background = circle(purple)
+                circle.background = disk(ink, signal)
+                icon.clearColorFilter()
                 icon.setImageResource(R.drawable.ic_mark_n)
                 icon.visibility = View.VISIBLE
                 progress.visibility = View.GONE
@@ -146,7 +150,8 @@ class BubbleOverlay(
                 root.contentDescription = "noType, start dictation"
             }
             BubblePhase.Recording -> {
-                circle.background = circle(Color.parseColor("#E11D48"))
+                circle.background = disk(Color.parseColor("#E11D48"))
+                icon.setColorFilter(Color.WHITE)
                 icon.setImageResource(R.drawable.ic_stop)
                 icon.visibility = View.VISIBLE
                 progress.visibility = View.GONE
@@ -155,7 +160,7 @@ class BubbleOverlay(
                 root.contentDescription = "Stop dictation"
             }
             BubblePhase.Working -> {
-                circle.background = circle(purple)
+                circle.background = disk(ink, signal)
                 icon.visibility = View.INVISIBLE
                 progress.visibility = View.VISIBLE
                 badge.visibility = View.INVISIBLE
@@ -163,7 +168,8 @@ class BubbleOverlay(
                 root.contentDescription = "Transcribing"
             }
             BubblePhase.Success -> {
-                circle.background = circle(Color.parseColor("#15803D"))
+                circle.background = disk(Color.parseColor("#15803D"))
+                icon.setColorFilter(Color.WHITE)
                 icon.setImageResource(R.drawable.ic_check)
                 icon.visibility = View.VISIBLE
                 progress.visibility = View.GONE
@@ -172,7 +178,8 @@ class BubbleOverlay(
                 root.contentDescription = message ?: "Done"
             }
             BubblePhase.Error -> {
-                circle.background = circle(Color.parseColor("#9F1239"))
+                circle.background = disk(Color.parseColor("#9F1239"))
+                icon.setColorFilter(Color.WHITE)
                 icon.setImageResource(R.drawable.ic_stop)
                 icon.visibility = View.VISIBLE
                 progress.visibility = View.GONE
@@ -242,9 +249,10 @@ class BubbleOverlay(
 
     private fun dp(value: Int): Int = (value * density).roundToInt()
 
-    private fun circle(color: Int): GradientDrawable = GradientDrawable().apply {
+    private fun disk(fill: Int, ring: Int? = null): GradientDrawable = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
-        setColor(color)
+        setColor(fill)
+        if (ring != null) setStroke(dp(3), ring)
     }
 
     private fun roundRect(color: Int, radius: Int): GradientDrawable = GradientDrawable().apply {
