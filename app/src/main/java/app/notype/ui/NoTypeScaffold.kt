@@ -1,9 +1,13 @@
 package app.notype.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
@@ -17,7 +21,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import app.notype.R
@@ -55,6 +62,8 @@ fun NoTypeScaffold() {
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val snoozed = rememberBubbleSnoozed()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
     val tell: (String) -> Unit = { message ->
@@ -105,15 +114,43 @@ fun NoTypeScaffold() {
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        NavHost(
-            navController = nav,
-            startDestination = "history",
-            modifier = Modifier.padding(padding),
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            if (snoozed) {
+                SnoozeBanner(onEnd = { endBubbleSnooze(context, scope) })
+            }
+            NavHost(
+                navController = nav,
+                startDestination = "history",
+                modifier = Modifier.weight(1f),
+            ) {
+                composable("history") { HistoryScreen(tell) { nav.navigate("impact") } }
+                composable("impact") { ImpactScreen(onBack = { nav.popBackStack() }) }
+                composable("dictionary") { DictionaryScreen(tell) }
+                composable("settings") { SettingsScreen(tell) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SnoozeBanner(onEnd: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            composable("history") { HistoryScreen(tell) { nav.navigate("impact") } }
-            composable("impact") { ImpactScreen(onBack = { nav.popBackStack() }) }
-            composable("dictionary") { DictionaryScreen(tell) }
-            composable("settings") { SettingsScreen(tell) }
+            Text(
+                "Bubble is snoozed",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            TextButton(onClick = onEnd) { Text("End snooze now") }
         }
     }
 }

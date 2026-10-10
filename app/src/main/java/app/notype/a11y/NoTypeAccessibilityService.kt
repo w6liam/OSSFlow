@@ -4,9 +4,12 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import app.notype.logic.TextSplice
 import app.notype.overlay.BubbleOverlay
 import java.util.ArrayDeque
@@ -14,18 +17,23 @@ import java.util.ArrayDeque
 class NoTypeAccessibilityService : AccessibilityService() {
     private var cached: AccessibilityNodeInfo? = null
     private var hostedBubble: BubbleOverlay? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshPresence = Runnable { reportPresence() }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        if (presenceListener != null) schedulePresence()
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(refreshPresence)
         val lostHost = hostedBubble != null
         hideHostedBubble()
         if (instance === this) instance = null
         cached?.recycle()
         cached = null
+        presenceListener?.invoke(false, false, false)
         if (lostHost) hostLost?.invoke()
         super.onDestroy()
     }
@@ -36,6 +44,7 @@ class NoTypeAccessibilityService : AccessibilityService() {
         onTap: () -> Unit,
         onCancel: () -> Unit,
         onMoved: (Int, Int) -> Unit,
+        onSnooze: () -> Unit,
     ): BubbleOverlay? {
         val existing = hostedBubble
         if (existing != null) {
@@ -54,9 +63,10 @@ class NoTypeAccessibilityService : AccessibilityService() {
             onTap = onTap,
             onCancel = onCancel,
             onMoved = onMoved,
+            onSnooze = onSnooze,
         )
         return try {
-            created.show(x, y)
+            created.show(x, y, present = false)
             hostedBubble = created
             created
         } catch (_: RuntimeException) {
@@ -77,13 +87,60 @@ class NoTypeAccessibilityService : AccessibilityService() {
         val source = event.source
         if (source != null && source.isEditable && !source.isPassword) {
             remember(source)
-            return
+        } else {
+            source?.recycle()
+            val root = rootInActiveWindow
+            if (root != null) {
+                val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                val kept = focused != null && focused.isEditable && !focused.isPassword
+                if (kept) {
+                    remember(focused)
+                } else if (focused != null && focused !== root) {
+                    focused.recycle()
+                }
+                if (!kept && root !== cached) root.recycle()
+            }
         }
-        val root = rootInActiveWindow ?: return
-        val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-        if (focused != null && focused.isEditable && !focused.isPassword) {
-            remember(focused)
+        schedulePresence()
+    }
+
+    private fun schedulePresence() {
+        handler.removeCallbacks(refreshPresence)
+        handler.postDelayed(refreshPresence, PRESENCE_DELAY_MS)
+    }
+
+    private fun reportPresence() {
+        val listener = presenceListener ?: return
+        val (editable, password, keyboard) = readField()
+        listener(editable, password, keyboard)
+    }
+
+    private fun readField(): Triple<Boolean, Boolean, Boolean> {
+        var editable = false
+        var password = false
+        var keyboard = false
+        val wins = windows ?: return Triple(false, false, false)
+        for (window in wins) {
+            if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) keyboard = true
+            if (window.type == AccessibilityWindowInfo.TYPE_APPLICATION) {
+                val root = window.root
+                if (root != null) {
+                    val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                    val kept = focused != null && focused.isEditable && !focused.isPassword
+                    if (kept) {
+                        editable = true
+                        remember(focused)
+                    } else {
+                        if (focused != null && focused.isPassword) password = true
+                        if (focused != null && focused !== root) focused.recycle()
+                    }
+                    if (!kept && root !== cached) root.recycle()
+                }
+            }
+            window.recycle()
         }
+        if (editable) password = false
+        return Triple(editable, password, keyboard)
     }
 
     fun insertIntoFocusedField(text: String): Boolean {
@@ -144,8 +201,17 @@ class NoTypeAccessibilityService : AccessibilityService() {
         private var instance: NoTypeAccessibilityService? = null
 
         private var hostLost: (() -> Unit)? = null
+        private var presenceListener: ((Boolean, Boolean, Boolean) -> Unit)? = null
+        private const val PRESENCE_DELAY_MS = 200L
 
         fun connected(): Boolean = instance != null
+
+        fun setPresenceListener(listener: ((Boolean, Boolean, Boolean) -> Unit)?) {
+            presenceListener = listener
+            val service = instance ?: return
+            if (listener == null) service.handler.removeCallbacks(service.refreshPresence)
+            else service.schedulePresence()
+        }
 
         fun insert(text: String): Boolean = instance?.insertIntoFocusedField(text) == true
 
@@ -155,7 +221,8 @@ class NoTypeAccessibilityService : AccessibilityService() {
             onTap: () -> Unit,
             onCancel: () -> Unit,
             onMoved: (Int, Int) -> Unit,
-        ): BubbleOverlay? = instance?.showHostedBubble(x, y, onTap, onCancel, onMoved)
+            onSnooze: () -> Unit,
+        ): BubbleOverlay? = instance?.showHostedBubble(x, y, onTap, onCancel, onMoved, onSnooze)
 
         fun hideHostedBubble() {
             instance?.hideHostedBubble()

@@ -34,6 +34,7 @@ data class AppSettings(
     val writingStyle: WritingStyle,
     val bubbleX: Int,
     val bubbleY: Int,
+    val bubbleSnoozed: Boolean,
 ) {
     val effectiveCleanupBaseUrl: String
         get() = if (cleanupSameCredentials) sttBaseUrl else cleanupBaseUrl
@@ -71,6 +72,7 @@ data class AppSettings(
             writingStyle = WritingStyle.NORMAL,
             bubbleX = -1,
             bubbleY = -1,
+            bubbleSnoozed = false,
         )
     }
 }

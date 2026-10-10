@@ -1,6 +1,7 @@
 package app.notype.ui
 
 import android.Manifest
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -19,14 +20,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.notype.container
+import app.notype.model.AppSettings
 import app.notype.overlay.BubbleRuntime
 import app.notype.overlay.BubbleService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun BubbleControls(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val snapshot = rememberPermissionSnapshot()
     val running by BubbleRuntime.running.collectAsState()
+    val snoozed = rememberBubbleSnoozed()
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && permissionSnapshot(context).readyForBubble) BubbleService.show(context)
     }
@@ -83,7 +89,11 @@ fun BubbleControls(modifier: Modifier = Modifier) {
             Column(Modifier.weight(1f)) {
                 Text("Bubble", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Stays on screen in every app. Tap to talk, tap to stop.",
+                    if (snoozed) {
+                        "Bubble is snoozed"
+                    } else {
+                        "Shows when a text field is selected and the keyboard is up. Tap to talk, tap to stop."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -105,6 +115,23 @@ fun BubbleControls(modifier: Modifier = Modifier) {
                 },
             )
         }
+    }
+}
+
+@Composable
+internal fun rememberBubbleSnoozed(): Boolean {
+    val context = LocalContext.current
+    val settings by context.container.settings.flow.collectAsState(initial = AppSettings.defaults())
+    val running by BubbleRuntime.running.collectAsState()
+    val runtimeSnoozed by BubbleRuntime.snoozed.collectAsState()
+    return if (running) runtimeSnoozed else settings.bubbleSnoozed
+}
+
+internal fun endBubbleSnooze(context: Context, scope: CoroutineScope) {
+    BubbleRuntime.snoozed.value = false
+    BubbleRuntime.onSnoozeChanged?.invoke()
+    scope.launch {
+        context.container.settings.setBubbleSnoozed(false)
     }
 }
 

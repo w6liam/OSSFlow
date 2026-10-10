@@ -59,6 +59,10 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun setBubbleSnoozed(snoozed: Boolean) {
+        store.edit { prefs -> prefs[BUBBLE_SNOOZED] = snoozed }
+    }
+
     val timeSaved: Flow<TimeSavedTotals> = store.data.map { prefs ->
         TimeSavedTotals(
             words = prefs[LIFETIME_WORDS] ?: 0L,
@@ -97,6 +101,7 @@ class SettingsRepository(context: Context) {
             writingStyle = styleOf(prefs[STYLE]),
             bubbleX = prefs[BUBBLE_X] ?: -1,
             bubbleY = prefs[BUBBLE_Y] ?: -1,
+            bubbleSnoozed = prefs[BUBBLE_SNOOZED] ?: false,
         )
     }
 
@@ -110,6 +115,7 @@ class SettingsRepository(context: Context) {
         this[CLEANUP_URL] = settings.cleanupBaseUrl
         this[CLEANUP_MODEL] = settings.cleanupModel
         this[STYLE] = settings.writingStyle.name
+        this[BUBBLE_SNOOZED] = settings.bubbleSnoozed
     }
 
     private fun protocolOf(raw: String?): SttProtocol =
@@ -130,6 +136,7 @@ class SettingsRepository(context: Context) {
         private val STYLE = stringPreferencesKey("writing_style")
         private val BUBBLE_X = intPreferencesKey("bubble_x")
         private val BUBBLE_Y = intPreferencesKey("bubble_y")
+        private val BUBBLE_SNOOZED = booleanPreferencesKey("bubble_snoozed")
         private val LIFETIME_WORDS = longPreferencesKey("lifetime_words")
         private val LIFETIME_SPEAKING_MS = longPreferencesKey("lifetime_speaking_ms")
         private const val KEY_STT = "stt_api_key"

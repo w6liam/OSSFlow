@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object BubbleRuntime {
     val running = MutableStateFlow(false)
     val phase = MutableStateFlow(BubblePhase.Idle)
+    val snoozed = MutableStateFlow(false)
+    var onSnoozeChanged: (() -> Unit)? = null
 }
 
 object BubbleNotifications {
@@ -55,6 +57,9 @@ class BubbleService : Service() {
     private var job: Job? = null
     private var overlay: BubbleOverlay? = null
     private var hostedByAccessibility = false
+    private var editableFocused = false
+    private var passwordFocused = false
+    private var keyboardVisible = false
     private lateinit var recorder: Recorder
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -78,7 +83,11 @@ class BubbleService : Service() {
             return START_NOT_STICKY
         }
         if (intent?.action == ACTION_HIDE) {
-            stopSelf()
+            scope.launch {
+                (application as NoTypeApp).container.settings.setBubbleSnoozed(false)
+                BubbleRuntime.snoozed.value = false
+                stopSelf()
+            }
             return START_NOT_STICKY
         }
         showBubble()
@@ -90,10 +99,12 @@ class BubbleService : Service() {
         if (::recorder.isInitialized && recorder.isRecording) recorder.cancel()
         if (::recorder.isInitialized) recorder.deleteLeftovers()
         NoTypeAccessibilityService.setHostLostListener(null)
+        NoTypeAccessibilityService.setPresenceListener(null)
         overlay?.hide()
         if (hostedByAccessibility) NoTypeAccessibilityService.hideHostedBubble()
         overlay = null
         hostedByAccessibility = false
+        BubbleRuntime.onSnoozeChanged = null
         BubbleRuntime.running.value = false
         BubbleRuntime.phase.value = BubblePhase.Idle
         scope.coroutineContext[Job]?.cancel()
@@ -117,7 +128,7 @@ class BubbleService : Service() {
         scope.launch {
             val settings = (application as NoTypeApp).container.settings.flow.first()
             val shown = if (canOverlay) {
-                showApplicationOverlay(settings.bubbleX, settings.bubbleY)
+                showApplicationOverlay(settings.bubbleX, settings.bubbleY, settings.bubbleSnoozed)
             } else {
                 showAccessibilityOverlay(settings.bubbleX, settings.bubbleY)
             }
@@ -126,13 +137,45 @@ class BubbleService : Service() {
                 stopSelf()
                 return@launch
             }
-            overlay?.setPhase(BubblePhase.Idle, null)
+            BubbleRuntime.snoozed.value = settings.bubbleSnoozed
+            BubbleRuntime.onSnoozeChanged = { applyPresence() }
+            NoTypeAccessibilityService.setPresenceListener(::onPresence)
+            setPhase(BubblePhase.Idle, null)
             BubbleRuntime.running.value = true
-            BubbleRuntime.phase.value = BubblePhase.Idle
         }
     }
 
-    private fun showApplicationOverlay(x: Int, y: Int): Boolean {
+    private fun snooze() {
+        BubbleRuntime.snoozed.value = true
+        scope.launch {
+            val settings = (application as NoTypeApp).container.settings
+            settings.setBubbleSnoozed(true)
+            if (!BubbleRuntime.snoozed.value) settings.setBubbleSnoozed(false)
+        }
+        applyPresence()
+    }
+
+    private fun onPresence(editable: Boolean, password: Boolean, keyboard: Boolean) {
+        editableFocused = editable
+        passwordFocused = password
+        keyboardVisible = keyboard
+        applyPresence()
+    }
+
+    private fun applyPresence() {
+        overlay?.setPresent(
+            BubblePresence.visible(
+                editableFocused = editableFocused,
+                password = passwordFocused,
+                keyboardVisible = keyboardVisible,
+                phase = BubbleRuntime.phase.value,
+                accessibilityConnected = NoTypeAccessibilityService.connected(),
+                snoozed = BubbleRuntime.snoozed.value,
+            ),
+        )
+    }
+
+    private fun showApplicationOverlay(x: Int, y: Int, snoozed: Boolean): Boolean {
         hostedByAccessibility = false
         NoTypeAccessibilityService.setHostLostListener(null)
         val window = overlay ?: BubbleOverlay(
@@ -142,9 +185,14 @@ class BubbleService : Service() {
             onTap = ::onBubbleTap,
             onCancel = ::cancelRecording,
             onMoved = ::rememberPosition,
+            onSnooze = ::snooze,
         ).also { overlay = it }
         return try {
-            window.show(x, y)
+            window.show(
+                x,
+                y,
+                present = !snoozed && !NoTypeAccessibilityService.connected(),
+            )
             true
         } catch (_: RuntimeException) {
             false
@@ -159,6 +207,7 @@ class BubbleService : Service() {
             onTap = ::onBubbleTap,
             onCancel = ::cancelRecording,
             onMoved = ::rememberPosition,
+            onSnooze = ::snooze,
         ) ?: return false
         overlay = window
         hostedByAccessibility = true
@@ -243,6 +292,7 @@ class BubbleService : Service() {
     private fun setPhase(phase: BubblePhase, message: String?) {
         BubbleRuntime.phase.value = phase
         overlay?.setPhase(phase, message)
+        applyPresence()
         val status = when (phase) {
             BubblePhase.Idle -> "Tap the bubble to dictate"
             BubblePhase.Recording -> "Listening"
@@ -293,7 +343,12 @@ class BubbleService : Service() {
         }
 
         fun hide(context: Context) {
-            context.stopService(Intent(context, BubbleService::class.java))
+            val intent = Intent(context, BubbleService::class.java).setAction(ACTION_HIDE)
+            if (BubbleRuntime.running.value) {
+                context.startService(intent)
+            } else {
+                context.stopService(intent)
+            }
         }
     }
 }
