@@ -37,16 +37,20 @@ object BubbleRuntime {
 }
 
 object BubbleNotifications {
-    const val CHANNEL_ID = "bubble"
+    const val CHANNEL_ID = "bubble_status"
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
+        manager.deleteNotificationChannel("bubble")
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.bubble_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description = context.getString(R.string.bubble_channel_description)
+            setShowBadge(false)
+            setSound(null, null)
+            enableVibration(false)
         }
         manager.createNotificationChannel(channel)
     }
@@ -104,6 +108,7 @@ class BubbleService : Service() {
         if (hostedByAccessibility) NoTypeAccessibilityService.hideHostedBubble()
         overlay = null
         hostedByAccessibility = false
+        showing = false
         BubbleRuntime.onSnoozeChanged = null
         BubbleRuntime.running.value = false
         BubbleRuntime.phase.value = BubblePhase.Idle
@@ -111,16 +116,21 @@ class BubbleService : Service() {
         super.onDestroy()
     }
 
+    private var showing = false
+
     private fun showBubble() {
-        if (overlay != null) return
+        if (overlay != null || showing) return
+        showing = true
         val mic = ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO)
         if (mic != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            showing = false
             toast("Allow the microphone.")
             stopSelf()
             return
         }
         val canOverlay = Settings.canDrawOverlays(this)
         if (!canOverlay && !NoTypeAccessibilityService.connected()) {
+            showing = false
             toast("Allow restricted settings, then turn the bubble on.")
             stopSelf()
             return
@@ -133,6 +143,7 @@ class BubbleService : Service() {
                 showAccessibilityOverlay(settings.bubbleX, settings.bubbleY)
             }
             if (!shown) {
+                showing = false
                 toast("Could not show the bubble.")
                 stopSelf()
                 return@launch
@@ -321,6 +332,8 @@ class BubbleService : Service() {
             .setContentTitle("noType")
             .setContentText(text)
             .setOngoing(true)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
             .setContentIntent(open)
             .addAction(0, "Stop", stop)
             .build()

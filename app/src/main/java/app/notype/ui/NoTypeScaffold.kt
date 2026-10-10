@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ import app.notype.ui.dictionary.DictionaryScreen
 import app.notype.ui.history.HistoryScreen
 import app.notype.ui.history.ImpactScreen
 import app.notype.ui.settings.SettingsScreen
+import app.notype.ui.theme.InkText
 import kotlinx.coroutines.launch
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -142,7 +144,7 @@ private fun SnoozeBanner(onEnd: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color(0xFFF6E3A1),
     ) {
         Row(
             modifier = Modifier.padding(start = 16.dp, end = 8.dp),
@@ -152,8 +154,12 @@ private fun SnoozeBanner(onEnd: () -> Unit) {
                 "Bubble is snoozed",
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
+                color = InkText,
             )
-            TextButton(onClick = onEnd) { Text("End snooze now") }
+            TextButton(
+                onClick = onEnd,
+                colors = ButtonDefaults.textButtonColors(contentColor = InkText),
+            ) { Text("End snooze now") }
         }
     }
 }

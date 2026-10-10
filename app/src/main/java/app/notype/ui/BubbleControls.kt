@@ -14,8 +14,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,11 +30,25 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-fun BubbleControls(modifier: Modifier = Modifier) {
+fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
     val context = LocalContext.current
     val snapshot = rememberPermissionSnapshot()
-    val running by BubbleRuntime.running.collectAsState()
+    val settings by context.container.settings.flow.collectAsState(initial = null as AppSettings?)
+    val wanted = settings?.bubbleWanted ?: true
     val snoozed = rememberBubbleSnoozed()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(
+        settings?.bubbleWanted,
+        snapshot.microphone,
+        snapshot.notifications,
+        snapshot.overlay,
+        snapshot.accessibility,
+    ) {
+        val turnOn = settings?.bubbleWanted ?: return@LaunchedEffect
+        if (turnOn && snapshot.readyForBubble && !BubbleRuntime.running.value) {
+            BubbleService.show(context)
+        }
+    }
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && permissionSnapshot(context).readyForBubble) BubbleService.show(context)
     }
@@ -87,7 +103,9 @@ fun BubbleControls(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Bubble", style = MaterialTheme.typography.titleMedium)
+                if (showTitle) {
+                    Text("Bubble", style = MaterialTheme.typography.titleMedium)
+                }
                 Text(
                     if (snoozed) {
                         "Bubble is snoozed"
@@ -99,8 +117,9 @@ fun BubbleControls(modifier: Modifier = Modifier) {
                 )
             }
             Switch(
-                checked = running,
+                checked = wanted,
                 onCheckedChange = { want ->
+                    scope.launch { context.container.settings.setBubbleWanted(want) }
                     if (!want) {
                         BubbleService.hide(context)
                         return@Switch

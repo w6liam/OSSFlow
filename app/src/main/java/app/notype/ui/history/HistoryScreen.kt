@@ -48,6 +48,7 @@ import app.notype.container
 import app.notype.data.TranscriptEntity
 import app.notype.logic.TimeSaved
 import app.notype.ui.BubbleControls
+import app.notype.ui.theme.Signal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -76,10 +77,18 @@ fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
         item {
             MinutesSavedCard(TimeSaved.minutes(totals.words, totals.speakingMs), onOpenImpact)
         }
+        item {
+            Text(
+                "Transcriptions",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         if (items.isEmpty()) {
             item {
                 Text(
-                    "No dictations yet. Turn the bubble on, open any app, then tap the bubble and speak.",
+                    "No dictations yet. Open any app, then tap the bubble and speak.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -111,11 +120,10 @@ private fun MinutesSavedCard(minutes: Double, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(TimeSaved.formatMinutes(minutes), style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Since the last reset",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                TimeSaved.formatMinutes(minutes),
+                style = MaterialTheme.typography.headlineMedium,
+                color = Signal,
             )
         }
     }

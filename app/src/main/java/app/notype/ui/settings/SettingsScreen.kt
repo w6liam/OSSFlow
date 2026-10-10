@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -22,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,8 +36,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import app.notype.container
-import app.notype.data.TimeSavedTotals
-import app.notype.logic.TimeSaved
 import app.notype.model.AppSettings
 import app.notype.model.SttProtocol
 import app.notype.model.WritingStyle
@@ -57,13 +55,22 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
     var revealCleanupKey by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf("") }
     var confirmReset by remember { mutableStateOf(false) }
-    val totals by repository.timeSaved.collectAsState(initial = TimeSavedTotals(0L, 0L))
 
     LaunchedEffect(Unit) {
         draft = repository.flow.first()
         loaded = true
     }
     if (!loaded) return
+
+    suspend fun saveDraft() {
+        repository.update { current ->
+            draft.copy(
+                bubbleWanted = current.bubbleWanted,
+                bubbleSnoozed = current.bubbleSnoozed,
+            )
+        }
+        draft = repository.flow.first()
+    }
 
     Column(
         modifier = Modifier
@@ -72,8 +79,9 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BubbleControls()
-        Text("Transcription", style = MaterialTheme.typography.titleMedium)
+        SectionLabel("Bubble")
+        BubbleControls(showTitle = false)
+        SectionLabel("Transcription")
         ProtocolPicker(draft.sttProtocol) { protocol ->
             draft = draft.copy(sttProtocol = protocol)
         }
@@ -119,7 +127,7 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Text("Cleanup", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+        SectionLabel("Cleanup")
         ToggleRow("Clean up the transcript", draft.cleanupEnabled) { enabled ->
             draft = draft.copy(cleanupEnabled = enabled)
             scope.launch { repository.update { it.copy(cleanupEnabled = enabled) } }
@@ -166,8 +174,7 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
         Button(
             onClick = {
                 scope.launch {
-                    repository.update { draft }
-                    draft = repository.flow.first()
+                    saveDraft()
                     onMessage("Saved")
                 }
             },
@@ -177,10 +184,8 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
         OutlinedButton(
             onClick = {
                 scope.launch {
-                    repository.update { draft }
-                    val saved = repository.flow.first()
-                    draft = saved
-                    testResult = tester.test(saved.sttBaseUrl, saved.sttApiKey)
+                    saveDraft()
+                    testResult = tester.test(draft.sttBaseUrl, draft.sttApiKey)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -190,30 +195,13 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             OutlinedButton(
                 onClick = {
                     scope.launch {
-                        repository.update { draft }
-                        val saved = repository.flow.first()
-                        draft = saved
-                        testResult = tester.test(saved.cleanupBaseUrl, saved.cleanupApiKey)
+                        saveDraft()
+                        testResult = tester.test(draft.cleanupBaseUrl, draft.cleanupApiKey)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Test cleanup") }
         }
-        Text("Time saved", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
-        Text(
-            TimeSaved.formatMinutes(TimeSaved.minutes(totals.words, totals.speakingMs)),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            "Deleting a transcript leaves this total unchanged.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(
-            onClick = { confirmReset = true },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Reset time saved") }
-
         if (testResult.isNotEmpty()) {
             Text(
                 testResult,
@@ -224,6 +212,16 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
                 },
             )
         }
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        Text(
+            "The counter goes back to zero. History stays.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { confirmReset = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Reset time saved") }
     }
 
     if (confirmReset) {
@@ -242,6 +240,15 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             },
         )
     }
+}
+
+@Composable
+private fun SectionLabel(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(top = 8.dp),
+    )
 }
 
 @Composable

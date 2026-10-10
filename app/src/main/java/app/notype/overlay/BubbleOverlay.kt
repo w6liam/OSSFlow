@@ -5,8 +5,6 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -45,8 +43,6 @@ class BubbleOverlay(
     private val bubbleSize = dp(64)
     private val badgeSize = dp(22)
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
-    private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
-    private val handler = Handler(Looper.getMainLooper())
 
     private val ink = Color.parseColor("#07080D")
     private val inkIdle = Color.argb(224, 0x07, 0x08, 0x0D)
@@ -173,12 +169,8 @@ class BubbleOverlay(
     private var startY = 0
     private var dragging = false
     private var aiming = false
-    private var fingerDown = false
     private var phase = BubblePhase.Idle
     private var present = true
-    private val beginAim = Runnable {
-        if (fingerDown && !dragging && phase == BubblePhase.Idle) startAiming()
-    }
 
     fun show(x: Int, y: Int, present: Boolean = true) {
         if (root.parent != null) return
@@ -209,7 +201,6 @@ class BubbleOverlay(
     }
 
     fun hide() {
-        handler.removeCallbacks(beginAim)
         stopPulse()
         if (aiming) stopAiming(restore = true, updateWindow = false)
         if (root.parent != null) windowManager.removeView(root)
@@ -311,8 +302,6 @@ class BubbleOverlay(
                 startX = params.x
                 startY = params.y
                 dragging = false
-                fingerDown = true
-                if (phase == BubblePhase.Idle) handler.postDelayed(beginAim, longPressTimeout)
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
@@ -320,28 +309,35 @@ class BubbleOverlay(
                 val dy = event.rawY - downRawY
                 if (aiming) {
                     moveAimed(dx, dy)
-                } else {
-                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) {
-                        dragging = true
-                        handler.removeCallbacks(beginAim)
+                } else if (!dragging && (abs(dx) > slop || abs(dy) > slop)) {
+                    dragging = true
+                    if (phase == BubblePhase.Idle) {
+                        startAiming(dx, dy)
+                    } else if (root.parent != null) {
+                        moveWindow(dx, dy)
                     }
-                    if (dragging && root.parent != null) {
-                        params.x = startX + dx.roundToInt()
-                        params.y = startY + dy.roundToInt()
-                        clamp()
-                        windowManager.updateViewLayout(root, params)
-                    }
+                } else if (dragging && !aiming && root.parent != null) {
+                    moveWindow(dx, dy)
                 }
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                handler.removeCallbacks(beginAim)
-                fingerDown = false
                 when {
                     aiming -> {
-                        val snooze = overSnooze()
-                        stopAiming(restore = true, updateWindow = true)
-                        if (snooze) onSnooze()
+                        val place = cluster.layoutParams as FrameLayout.LayoutParams
+                        val dropX = place.leftMargin
+                        val dropY = place.topMargin
+                        if (overSnooze()) {
+                            stopAiming(restore = true, updateWindow = true)
+                            onSnooze()
+                        } else {
+                            stopAiming(restore = false, updateWindow = false)
+                            params.x = dropX
+                            params.y = dropY
+                            clamp()
+                            updateWindow()
+                            onMoved(params.x, params.y)
+                        }
                     }
                     !dragging -> {
                         if (phase == BubblePhase.Recording && inBadge(event)) onCancel() else onTap()
@@ -351,8 +347,6 @@ class BubbleOverlay(
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
-                handler.removeCallbacks(beginAim)
-                fingerDown = false
                 if (aiming) stopAiming(restore = true, updateWindow = true)
                 return true
             }
@@ -360,7 +354,14 @@ class BubbleOverlay(
         return false
     }
 
-    private fun startAiming() {
+    private fun moveWindow(dx: Float, dy: Float) {
+        params.x = startX + dx.roundToInt()
+        params.y = startY + dy.roundToInt()
+        clamp()
+        windowManager.updateViewLayout(root, params)
+    }
+
+    private fun startAiming(dx: Float, dy: Float) {
         if (root.parent == null || aiming) return
         aiming = true
         snoozeTarget.visibility = View.VISIBLE
@@ -369,7 +370,7 @@ class BubbleOverlay(
         params.height = WindowManager.LayoutParams.MATCH_PARENT
         params.x = 0
         params.y = 0
-        placeCluster(startX, startY)
+        moveAimed(dx, dy)
         updateWindow()
     }
 
