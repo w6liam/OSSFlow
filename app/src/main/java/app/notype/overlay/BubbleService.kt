@@ -232,7 +232,7 @@ class BubbleService : Service() {
         if (BubbleRuntime.phase.value == BubblePhase.Working) return
         try {
             recorder.start()
-            setPhase(BubblePhase.Recording, "Listening. Tap to stop.")
+            setPhase(BubblePhase.Recording, null)
         } catch (e: Exception) {
             setPhase(BubblePhase.Error, e.message ?: "Could not record.")
             scope.launch {
@@ -255,7 +255,7 @@ class BubbleService : Service() {
             }
             return
         }
-        setPhase(BubblePhase.Working, "Transcribing")
+        setPhase(BubblePhase.Working, null)
         val coordinator = (application as NoTypeApp).container.coordinator
         job = scope.launch {
             try {

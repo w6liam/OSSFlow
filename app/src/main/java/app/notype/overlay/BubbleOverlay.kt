@@ -222,7 +222,7 @@ class BubbleOverlay(
                 icon.visibility = View.VISIBLE
                 progress.visibility = View.GONE
                 badge.visibility = View.VISIBLE
-                showCaption(message)
+                caption.visibility = View.GONE
                 cluster.contentDescription = "Stop dictation"
             }
             BubblePhase.Working -> {
@@ -230,7 +230,7 @@ class BubbleOverlay(
                 icon.visibility = View.INVISIBLE
                 progress.visibility = View.VISIBLE
                 badge.visibility = View.INVISIBLE
-                showCaption(message ?: "Transcribing")
+                caption.visibility = View.GONE
                 cluster.contentDescription = "Transcribing"
             }
             BubblePhase.Success -> {

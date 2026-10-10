@@ -13,6 +13,8 @@ import android.view.accessibility.AccessibilityWindowInfo
 import app.notype.logic.TextSplice
 import app.notype.overlay.BubbleOverlay
 import java.util.ArrayDeque
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class NoTypeAccessibilityService : AccessibilityService() {
     private var cached: AccessibilityNodeInfo? = null
@@ -23,6 +25,7 @@ class NoTypeAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        connectedState.value = true
         if (presenceListener != null) schedulePresence()
     }
 
@@ -30,7 +33,10 @@ class NoTypeAccessibilityService : AccessibilityService() {
         handler.removeCallbacks(refreshPresence)
         val lostHost = hostedBubble != null
         hideHostedBubble()
-        if (instance === this) instance = null
+        if (instance === this) {
+            instance = null
+            connectedState.value = false
+        }
         cached?.recycle()
         cached = null
         presenceListener?.invoke(false, false, false)
@@ -199,6 +205,9 @@ class NoTypeAccessibilityService : AccessibilityService() {
     companion object {
         @Volatile
         private var instance: NoTypeAccessibilityService? = null
+
+        private val connectedState = MutableStateFlow(false)
+        val connectedFlow: StateFlow<Boolean> = connectedState
 
         private var hostLost: (() -> Unit)? = null
         private var presenceListener: ((Boolean, Boolean, Boolean) -> Unit)? = null

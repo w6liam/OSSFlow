@@ -1,13 +1,16 @@
 package app.notype.ui
 
 import android.Manifest
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -17,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import app.notype.a11y.AccessibilityEnabled
 import app.notype.a11y.NoTypeAccessibilityService
 
 data class PermissionSnapshot(
@@ -34,12 +38,21 @@ fun permissionSnapshot(context: Context): PermissionSnapshot {
     val notifications = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
         android.content.pm.PackageManager.PERMISSION_GRANTED
     val overlay = Settings.canDrawOverlays(context)
-    val expected = ComponentName(context, NoTypeAccessibilityService::class.java).flattenToString()
+    val component = ComponentName(context, NoTypeAccessibilityService::class.java)
     val enabled = Settings.Secure.getString(
         context.contentResolver,
         Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-    ).orEmpty()
-    val accessibility = enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+    )
+    val listed = AccessibilityEnabled.listed(enabled, component.packageName, component.className)
+    val bound = context.getSystemService(AccessibilityManager::class.java)
+        ?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        ?.any { info ->
+            val service = info.resolveInfo?.serviceInfo ?: return@any false
+            val name = service.name ?: return@any false
+            val className = if (name.startsWith('.')) service.packageName + name else name
+            service.packageName == component.packageName && className == component.className
+        } == true
+    val accessibility = listed || bound || NoTypeAccessibilityService.connected()
     return PermissionSnapshot(mic, notifications, overlay, accessibility)
 }
 
@@ -48,6 +61,7 @@ fun rememberPermissionSnapshot(): PermissionSnapshot {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var tick by remember { mutableIntStateOf(0) }
+    val serviceConnected by NoTypeAccessibilityService.connectedFlow.collectAsState()
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) tick++
@@ -55,7 +69,7 @@ fun rememberPermissionSnapshot(): PermissionSnapshot {
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
-    return remember(tick) { permissionSnapshot(context) }
+    return remember(tick, serviceConnected) { permissionSnapshot(context) }
 }
 
 fun openOverlaySettings(context: Context) {
