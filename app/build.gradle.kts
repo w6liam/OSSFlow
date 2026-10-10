@@ -13,8 +13,8 @@ android {
         applicationId = "app.notype"
         minSdk = 34
         targetSdk = 37
-        versionCode = 11
-        versionName = "1.2.4"
+        versionCode = 12
+        versionName = "1.2.5"
     }
 
     buildTypes {

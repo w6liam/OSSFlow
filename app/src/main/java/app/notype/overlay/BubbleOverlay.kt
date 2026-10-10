@@ -12,6 +12,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.ValueAnimator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -64,6 +67,13 @@ class BubbleOverlay(
         background = disk(inkIdle, signal)
     }
 
+    private var ringPulse: ObjectAnimator? = null
+
+    private val pulseRing = View(context).apply {
+        background = disk(Color.TRANSPARENT, signal)
+        visibility = View.GONE
+    }
+
     private val icon = ImageView(context).apply {
         setImageResource(R.drawable.ic_mark_n)
         scaleType = ImageView.ScaleType.FIT_CENTER
@@ -87,7 +97,9 @@ class BubbleOverlay(
     }
 
     private val bubble = FrameLayout(context).apply {
+        clipChildren = false
         addView(circle, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
+        addView(pulseRing, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
         addView(icon, FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER))
         addView(
             progress,
@@ -198,12 +210,14 @@ class BubbleOverlay(
 
     fun hide() {
         handler.removeCallbacks(beginAim)
+        stopPulse()
         if (aiming) stopAiming(restore = true, updateWindow = false)
         if (root.parent != null) windowManager.removeView(root)
     }
 
     fun setPhase(next: BubblePhase, message: String?) {
         phase = next
+        if (next == BubblePhase.Recording) startPulse() else stopPulse()
         when (next) {
             BubblePhase.Idle -> {
                 circle.background = disk(inkIdle, signal)
@@ -216,7 +230,7 @@ class BubbleOverlay(
                 cluster.contentDescription = "noType, start dictation"
             }
             BubblePhase.Recording -> {
-                circle.background = disk(Color.parseColor("#E11D48"))
+                circle.background = disk(Color.parseColor("#E11D48"), signal)
                 icon.setColorFilter(Color.WHITE)
                 icon.setImageResource(R.drawable.ic_stop)
                 icon.visibility = View.VISIBLE
@@ -254,6 +268,30 @@ class BubbleOverlay(
                 cluster.contentDescription = message ?: "Dictation failed"
             }
         }
+    }
+
+    private fun startPulse() {
+        if (ringPulse?.isRunning == true) return
+        pulseRing.visibility = View.VISIBLE
+        ringPulse = ObjectAnimator.ofPropertyValuesHolder(
+            pulseRing,
+            PropertyValuesHolder.ofFloat(View.SCALE_X, 0.72f, 1.08f),
+            PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.72f, 1.08f),
+            PropertyValuesHolder.ofFloat(View.ALPHA, 0.95f, 0f),
+        ).apply {
+            duration = 1100
+            repeatCount = ValueAnimator.INFINITE
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        ringPulse?.cancel()
+        ringPulse = null
+        pulseRing.visibility = View.GONE
+        pulseRing.alpha = 1f
+        pulseRing.scaleX = 1f
+        pulseRing.scaleY = 1f
     }
 
     private fun showCaption(message: String?) {

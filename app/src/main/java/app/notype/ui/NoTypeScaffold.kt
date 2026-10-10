@@ -1,5 +1,6 @@
 package app.notype.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,7 +81,9 @@ fun NoTypeScaffold() {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_mark_n),
+                            painter = painterResource(
+                                if (isSystemInDarkTheme()) R.drawable.ic_mark_n else R.drawable.ic_mark_ink,
+                            ),
                             contentDescription = null,
                             tint = Color.Unspecified,
                             modifier = Modifier.size(24.dp),

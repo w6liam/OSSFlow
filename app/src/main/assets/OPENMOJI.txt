@@ -1,8 +1,0 @@
-Studio microphone (U+1F399) by OpenMoji — the open-source emoji and icon project.
-https://openmoji.org
-
-The artwork in logo/mark.svg and the app icon is the OpenMoji file, used unmodified.
-License: CC BY-SA 4.0
-https://creativecommons.org/licenses/by-sa/4.0/
-
-That license covers this emoji. It does not relicense the rest of noType.
