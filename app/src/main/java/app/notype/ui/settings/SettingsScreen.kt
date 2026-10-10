@@ -89,18 +89,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             value = draft.sttBaseUrl,
             onValueChange = { draft = draft.copy(sttBaseUrl = it) },
             label = { Text("Base URL") },
-            supportingText = {
-                Text(
-                    when {
-                        draft.sttBaseUrl.contains("openrouter.ai", ignoreCase = true) ->
-                            "OpenRouter's base URL is https://openrouter.ai/api/v1."
-                        draft.sttProtocol == SttProtocol.GROK ->
-                            "Grok uses /stt on this URL."
-                        else ->
-                            "OpenAI-compatible endpoints use /audio/transcriptions."
-                    },
-                )
-            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -122,7 +110,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             value = draft.sttLanguage,
             onValueChange = { draft = draft.copy(sttLanguage = it) },
             label = { Text("Language") },
-            supportingText = { Text("For example en") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -137,11 +124,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             draft = draft.copy(writingStyle = style)
             scope.launch { repository.update { it.copy(writingStyle = style) } }
         }
-        Text(
-            "Normal is standard English. Formal is polite and professional. Informal is relaxed, with contractions.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         ToggleRow("Use the same API key and base URL", draft.cleanupSameCredentials) { same ->
             draft = draft.copy(cleanupSameCredentials = same)
             scope.launch { repository.update { it.copy(cleanupSameCredentials = same) } }
@@ -166,7 +148,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             value = draft.cleanupModel,
             onValueChange = { draft = draft.copy(cleanupModel = it) },
             label = { Text("Cleanup model") },
-            supportingText = { Text("Chat completions. A non-reasoning model answers faster.") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -213,11 +194,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             )
         }
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-        Text(
-            "The counter goes back to zero. History stays.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         OutlinedButton(
             onClick = { confirmReset = true },
             modifier = Modifier.fillMaxWidth(),

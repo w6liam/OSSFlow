@@ -72,18 +72,12 @@ fun DictionaryScreen(onMessage: (String) -> Unit) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item {
-                Text(
-                    "Add a word you want written correctly.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             if (entries.isEmpty()) {
                 item {
                     Text(
-                        "Nothing here yet. Add a name or a product, such as Maya or Keynote.",
+                        "Add names or terms you want spelled correctly.",
                         style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -208,7 +202,6 @@ private fun DictionaryEditor(
                 value = spelling,
                 onValueChange = { spelling = it },
                 label = { Text("Word") },
-                supportingText = { Text("The spelling you want inserted.") },
                 isError = tooLong,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -17,7 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +41,7 @@ fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
     val wanted = settings?.bubbleWanted ?: true
     val snoozed = rememberBubbleSnoozed()
     val scope = rememberCoroutineScope()
+    var showHelp by remember { mutableStateOf(false) }
     LaunchedEffect(
         settings?.bubbleWanted,
         snapshot.microphone,
@@ -67,14 +72,6 @@ fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Setup", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Android blocked Display over other apps because noType was installed outside the Play Store. Open noType’s app info, tap the ⋮ menu, and choose Allow restricted settings. Confirm with your screen lock. That menu appears after the denial you just saw. Then allow Display over other apps and Accessibility. Accessibility types into the field you are using. If Display over other apps still will not turn on, Accessibility alone can show the bubble, and dictated text is still copied here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
-                    )
-                    TextButton(onClick = { openAppInfo(context) }) {
-                        Text("Open app info")
-                    }
                     PermissionRow("Microphone", snapshot.microphone) {
                         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
@@ -87,12 +84,7 @@ fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
                     PermissionRow("Accessibility", snapshot.accessibility) {
                         openAccessibilitySettings(context)
                     }
-                    Text(
-                        "On Android 17, Advanced Protection blocks this for apps that are not a verified accessibility tool. Dictation still copies the text into History.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+                    TextButton(onClick = { showHelp = true }) { Text("Need help?") }
                 }
             }
         }
@@ -107,11 +99,7 @@ fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
                     Text("Bubble", style = MaterialTheme.typography.titleMedium)
                 }
                 Text(
-                    if (snoozed) {
-                        "Bubble is snoozed"
-                    } else {
-                        "Shows when a text field is selected and the keyboard is up. Tap to talk, tap to stop."
-                    },
+                    if (snoozed) "Bubble is snoozed" else "Shows when the keyboard is open",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -134,6 +122,26 @@ fun BubbleControls(modifier: Modifier = Modifier, showTitle: Boolean = true) {
                 },
             )
         }
+    }
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            title = { Text("Need help?") },
+            text = {
+                Text(
+                    "1. Open app info. Tap the menu, then Allow restricted settings. Confirm with your screen lock.\n" +
+                        "2. Allow Display over other apps and Accessibility.\n" +
+                        "3. Accessibility types into the field. If overlay stays off, Accessibility can still show the bubble.\n" +
+                        "4. Android 17 can block Accessibility for apps that are not a verified tool. History still keeps the text.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { openAppInfo(context) }) { Text("Open app info") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHelp = false }) { Text("Close") }
+            },
+        )
     }
 }
 
@@ -161,11 +169,17 @@ private fun PermissionRow(label: String, granted: Boolean, onAllow: () -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = if (granted) "$label allowed" else label,
+            text = label,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
         )
-        if (!granted) {
+        if (granted) {
+            Text(
+                "Allowed",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
             TextButton(onClick = onAllow) { Text("Allow") }
         }
     }

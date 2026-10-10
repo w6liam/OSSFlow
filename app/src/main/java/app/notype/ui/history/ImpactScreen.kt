@@ -37,11 +37,6 @@ fun ImpactScreen(onBack: () -> Unit) {
         Stat("Words dictated", totals.words.toString())
         Stat("Typing at 40 words per minute", TimeSaved.formatMinutes(typing))
         Stat("Time spent speaking", TimeSaved.formatMinutes(speaking))
-        Text(
-            "This assumes those words would have been typed at 40 words per minute. The total is since the last reset, and deleting a transcript does not change it.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

@@ -88,7 +88,7 @@ fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
         if (items.isEmpty()) {
             item {
                 Text(
-                    "No dictations yet. Open any app, then tap the bubble and speak.",
+                    "No dictations yet.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
