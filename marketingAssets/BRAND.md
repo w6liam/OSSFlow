@@ -1,6 +1,6 @@
-# noType brand
+# UtterDroid brand
 
-noType is open source voice dictation. You bring your own AI keys. There is no account, nothing is stored in the cloud, and you own your data.
+UtterDroid is open source voice dictation. You bring your own AI keys. There is no account, nothing is stored in the cloud, and you own your data.
 
 The mark is a capsule microphone. Use the Signal fill on ink. Use the outline for the status bar, themed icons, and paper. Do not redraw the paths in `logo/mark.svg` and `logo/mark-mono.svg`.
 
@@ -12,8 +12,8 @@ Clear space around the mark is one quarter of the tile. Do not put type or anoth
 | --- | --- |
 | `logo/mark.svg` | Signal capsule. Use on ink. |
 | `logo/mark-mono.svg` | Outline of the same microphone. Status bar and themed icons. |
-| `logo/wordmark.svg` | Capsule plus the word noType in paper. Use on ink. |
-| `logo/wordmark-ink.svg` | Outline capsule plus the word noType in ink. Use on paper. |
+| `logo/wordmark.svg` | Capsule plus the word UtterDroid in paper. Use on ink. |
+| `logo/wordmark-ink.svg` | Outline capsule plus the word UtterDroid in ink. Use on paper. |
 | `logo/app-icon.svg` | Ink tile, signal ring, capsule. App icon and avatar. |
 | `logo/png/mark-512.png` | Capsule, 512 px, transparent ground. |
 | `logo/png/mark-1024.png` | Capsule, 1024 px, transparent ground. |
@@ -21,7 +21,7 @@ Clear space around the mark is one quarter of the tile. Do not put type or anoth
 | `logo/png/wordmark-1024.png` | Paper wordmark, 1024 px tall, transparent ground. |
 | `logo/png/app-icon-192.png` | App icon at 192 px. |
 
-The word “noType” is one word. The T is capital. Outfit SemiBold, set tight. Do not set the name in another typeface.
+The word “UtterDroid” is one word. The U and the D are capital. Outfit SemiBold, set tight. Do not set the name in another typeface.
 
 Say “voice dictation” when you mean the product. “Transcription” is the API setting, not the name of the app.
 
@@ -55,4 +55,4 @@ Dark is the primary face: the capsule and paper type on ink, signal for the live
 
 - Stretch the microphone, or add a shadow to it.
 - Use a second accent color.
-- Compare noType with another product in the mark, the wordmark, or this folder.
+- Compare UtterDroid with another product in the mark, the wordmark, or this folder.

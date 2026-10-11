@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "app.notype"
+    namespace = "app.utterdroid"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.notype"
+        applicationId = "app.utterdroid"
         minSdk = 34
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.2.7"
+        versionCode = 15
+        versionName = "1.3.0"
     }
 
     buildTypes {

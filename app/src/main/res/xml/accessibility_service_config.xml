@@ -6,4 +6,4 @@
     android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_description"
     android:notificationTimeout="50"
-    android:settingsActivity="app.notype.MainActivity" />
+    android:settingsActivity="app.utterdroid.MainActivity" />
