@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "UtterDroid"
+rootProject.name = "saydroid"
 include(":app")

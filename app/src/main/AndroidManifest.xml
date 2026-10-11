@@ -13,13 +13,13 @@
         android:required="false" />
 
     <application
-        android:name=".UtterDroidApp"
+        android:name=".SaydroidApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.UtterDroid"
+        android:theme="@style/Theme.Saydroid"
         android:usesCleartextTraffic="false">
 
         <activity
@@ -38,7 +38,7 @@
             android:foregroundServiceType="microphone" />
 
         <service
-            android:name=".a11y.UtterDroidAccessibilityService"
+            android:name=".a11y.SaydroidAccessibilityService"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "app.utterdroid"
+    namespace = "app.saydroid"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.utterdroid"
+        applicationId = "app.saydroid"
         minSdk = 34
         targetSdk = 37
-        versionCode = 15
-        versionName = "1.3.0"
+        versionCode = 16
+        versionName = "1.4.0"
     }
 
     buildTypes {
