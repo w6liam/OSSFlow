@@ -162,16 +162,6 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Save") }
 
-        OutlinedButton(
-            onClick = {
-                scope.launch {
-                    saveDraft()
-                    testResult = tester.test(draft.sttBaseUrl, draft.sttApiKey)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Test transcription") }
-
         if (!draft.cleanupSameCredentials) {
             OutlinedButton(
                 onClick = {
