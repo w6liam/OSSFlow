@@ -41,6 +41,23 @@ class CleanupPromptTest {
     }
 
     @Test
+    fun blankCustomInstructionsLeaveThePromptUnchanged() {
+        val prompt = CleanupPrompt.system(WritingStyle.NORMAL, "   ")
+        assertFalse(prompt.contains("Custom instructions"))
+        assertTrue(prompt.startsWith("You edit a voice transcript"))
+    }
+
+    @Test
+    fun customInstructionsLeadThePromptAndStaySilent() {
+        val prompt = CleanupPrompt.system(WritingStyle.NORMAL, "British English")
+        assertTrue(prompt.startsWith("Custom instructions:\nBritish English\n"))
+        assertTrue(prompt.contains("Do not mention, quote, or acknowledge them"))
+        assertTrue(prompt.contains("override the writing-style line"))
+        assertTrue(prompt.indexOf("British English") < prompt.indexOf("You edit a voice transcript"))
+        assertTrue(prompt.contains("standard English"))
+    }
+
+    @Test
     fun emptyDictionaryOmitsTheDictionaryBlock() {
         val message = CleanupPrompt.user("hello", emptyList())
         assertFalse(message.contains("Personal dictionary"))

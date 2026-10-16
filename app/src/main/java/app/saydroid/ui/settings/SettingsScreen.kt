@@ -115,6 +115,14 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
         )
 
         SectionLabel("Cleanup")
+        OutlinedTextField(
+            value = draft.cleanupInstructions,
+            onValueChange = { draft = draft.copy(cleanupInstructions = it) },
+            label = { Text("Custom Cleanup instructions") },
+            placeholder = { Text("example: British English or US English") },
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
         ToggleRow("Clean up the transcript", draft.cleanupEnabled) { enabled ->
             draft = draft.copy(cleanupEnabled = enabled)
             scope.launch { repository.update { it.copy(cleanupEnabled = enabled) } }

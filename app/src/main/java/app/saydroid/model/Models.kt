@@ -31,6 +31,7 @@ data class AppSettings(
     val cleanupBaseUrl: String,
     val cleanupApiKey: String,
     val cleanupModel: String,
+    val cleanupInstructions: String,
     val writingStyle: WritingStyle,
     val bubbleX: Int,
     val bubbleY: Int,
@@ -51,6 +52,7 @@ data class AppSettings(
         cleanupBaseUrl = ApiUrls.normalize(cleanupBaseUrl),
         cleanupApiKey = cleanupApiKey.trim(),
         cleanupModel = cleanupModel.trim().ifBlank { DEFAULT_CLEANUP_MODEL },
+        cleanupInstructions = cleanupInstructions.trim(),
     )
 
     companion object {
@@ -70,6 +72,7 @@ data class AppSettings(
             cleanupBaseUrl = DEFAULT_STT_URL,
             cleanupApiKey = "",
             cleanupModel = DEFAULT_CLEANUP_MODEL,
+            cleanupInstructions = "",
             writingStyle = WritingStyle.NORMAL,
             bubbleX = -1,
             bubbleY = -1,
