@@ -23,7 +23,7 @@ Sideloaded apps cannot turn on Display over other apps or Accessibility until re
 
 If Display over other apps stays off after restricted settings are allowed, Accessibility alone can still show the bubble. On Android 17, Advanced Protection can block Accessibility for apps that are not a verified tool. Dictation still copies the text into History.
 
-## Add a Grok key
+## Add a Grok key (Or any OpenAI Compatible Key) 
 
 The app is already set to Grok. You only add a key.
 
