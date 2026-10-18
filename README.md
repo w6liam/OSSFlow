@@ -1,10 +1,23 @@
 # OSSFlow
 
-Open source voice dictation for Android. Speak, and the text lands in the field you are using. You bring your own API key. There is no account, and OSSFlow does not keep a copy of your audio.
+Open-source voice dictation for Android.
+
+**Speak naturally. Own your data.**
+
+OSSFlow turns what you say into clean text in any app on your phone. You bring your own AI key. There is no account, and nothing is stored on OSSFlow's servers.
+
+- No account
+- Your keys
+- Nothing stored on our side
+- Open source
+
+You said: um hey so can you like grab milk on the way? actually oat milk, the blue one
+
+Inserted: Can you grab the blue oat milk on the way?
+
+[ossflow.xyz](https://ossflow.xyz)
 
 History stays on the phone. Audio is sent only to the transcription host you set, then deleted.
-
-OSSFlow Website: https://ossflow.xyz
 
 ## Install
 
