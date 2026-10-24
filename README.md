@@ -23,7 +23,7 @@ History stays on the phone. Audio is sent only to the transcription host you set
 
 Android 14 or newer.
 
-Download and open [OSSFlow.apk](https://ossflow.xyz/OSSFlow.apk). If the phone asks, allow your browser or Files to install unknown apps, then install OSSFlow.
+Download and open [OSSFlow.apk](https://github.com/w6liam/OSSFlow/raw/main/OSSFlow.apk). If the phone asks, allow your browser or Files to install unknown apps, then install OSSFlow.
 
 ## Set up the phone
 

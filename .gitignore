@@ -10,6 +10,7 @@ captures/
 .DS_Store
 .cxx/
 *.apk
+!/OSSFlow.apk
 *.aab
 .kotlin/
 results/
