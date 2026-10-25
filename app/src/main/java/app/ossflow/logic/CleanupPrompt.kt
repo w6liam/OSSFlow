@@ -18,11 +18,28 @@ object CleanupPrompt {
 
     /**
      * User message: the personal dictionary, when it has entries, then the raw transcript.
+     *
+     * Terms are described as rare. The model is told to use one only when the transcript
+     * sounds like it or matches a heard-as variant, and to leave an unsure word as heard.
      */
     fun user(raw: String, entries: List<Term>): String {
         val block = DictionaryTerms.promptBlock(entries)
-        val dictionary = if (block.isBlank()) "" else "Personal dictionary:\n$block\n\n"
-        return "${dictionary}Transcript:\n$raw"
+        if (block.isBlank()) return "Transcript:\n$raw"
+        return buildString {
+            appendLine("Personal dictionary (rare terms; most dictations will not contain any of these):")
+            appendLine(block)
+            appendLine()
+            appendLine(
+                "Only use one of these terms when the transcript contains something that sounds like it, " +
+                    "or that matches one of its heard-as variants. When unsure, keep the word as heard. " +
+                    "Never replace a word with an unrelated dictionary term.",
+            )
+            appendLine(
+                "Example: \"we could put it in crimple\" stays \"crimple\", not \"OSSFlow\" or \"Sissi\".",
+            )
+            appendLine()
+            append("Transcript:\n$raw")
+        }
     }
 
     private fun editRules(style: WritingStyle): String = buildString {
@@ -56,11 +73,11 @@ object CleanupPrompt {
     private val editingRules: List<String> = listOf(
         "Remove filler words and sounds such as um, uh, er, ah, and hmm, and filler phrases such as \"you know\" when they do not change the meaning.",
         "Apply self-corrections. On a false start, a restart, or a correction such as \"no\", \"sorry\", \"I mean\", \"actually\", or \"scratch that\", drop the superseded words and keep only the final intent. Remove fillers from the words you keep.",
-        "Repair speech the speaker clearly meant: fill in an obviously missing word, fix a misheard or garbled word, and fix agreement or tense slips.",
+        "Repair speech the speaker clearly meant: fill in an obviously missing word, fix a misheard or garbled word, and fix agreement or tense slips. Do not use a personal-dictionary term for that unless the word sounds like the term or matches a heard-as variant.",
         "Stay faithful. Do not add ideas, facts, or requests. Do not change meaning, tone, or register. If the intent is genuinely unclear, keep the original wording.",
         "Add punctuation and capitalization.",
         "Do not summarize. Do not drop a request the speaker actually made.",
-        "Apply the personal dictionary exactly. When the transcript matches a mishearing, replace it with the correct spelling.",
+        "Apply a personal dictionary term only when the transcript contains something that sounds like it, or that matches one of its heard-as variants. These are rare terms, and most dictations will not contain them. When unsure, keep the word as heard. Never replace a word with an unrelated dictionary term.",
         "Output only the final text. No label, no quotes, and no preamble.",
         "Do not begin with a label such as Note, Message, Transcript, or Corrected. The first character is the dictated text.",
     )
@@ -75,5 +92,6 @@ object CleanupPrompt {
         - "the notes is ready" → "The notes are ready."
         - "yesterday he go home" → "Yesterday he went home."
         - "ping Alex about the thing" → "Ping Alex about the thing."
+        - "we could put it in crimple" → "We could put it in crimple." Not "OSSFlow" or "Sissi" when those words were not said.
     """.trimIndent()
 }

@@ -10,6 +10,7 @@ import app.ossflow.data.AppDatabase
 import app.ossflow.data.SettingsRepository
 import app.ossflow.data.TranscriptEntity
 import app.ossflow.logic.CleanupText
+import app.ossflow.logic.DictionaryGuard
 import app.ossflow.logic.DictionaryTerms
 import app.ossflow.logic.TimeSaved
 import app.ossflow.model.DictationOutcome
@@ -37,7 +38,8 @@ class DictationCoordinator(
         if (settings.cleanupEnabled) {
             try {
                 val cleaned = CleanupText.withoutLabel(cleanup.clean(raw, terms, settings), raw)
-                text = cleaned.ifBlank { raw }
+                val guarded = if (cleaned.isBlank()) raw else DictionaryGuard.apply(raw, cleaned, terms)
+                text = guarded.ifBlank { raw }
             } catch (_: Exception) {
                 text = raw
                 cleanupSkipped = true

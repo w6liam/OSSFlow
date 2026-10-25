@@ -2,6 +2,7 @@ package app.ossflow.logic
 
 import app.ossflow.model.Term
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -38,6 +39,19 @@ class DictionaryTermsTest {
             listOf(Term("Sissi", listOf(" CC ", "Sissy", "CC"))),
         )
         assertEquals("- Sissi (often heard as: CC, Sissy)", block)
+    }
+
+    @Test
+    fun promptBlockStaysATermList() {
+        val block = DictionaryTerms.promptBlock(
+            listOf(
+                Term("OSSFlow", listOf("oss flow")),
+                Term("Sissi"),
+            ),
+        )
+        assertEquals("- OSSFlow (often heard as: oss flow)\n- Sissi", block)
+        assertFalse(block.contains("crimple"))
+        assertFalse(block.contains("Transcript"))
     }
 
     @Test
