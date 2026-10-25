@@ -85,7 +85,6 @@ class CleanupPromptTest {
         assertTrue(prompt.contains("Let's meet Wednesday."))
         assertTrue(prompt.contains("personal dictionary"))
         assertTrue(prompt.contains("Do not drop a request the speaker actually made"))
-        assertFalse(prompt.contains("Sissi"))
         assertFalse(prompt.contains("um email sissi"))
 
         assertTrue(informal.contains("contractions"))
@@ -137,6 +136,56 @@ class CleanupPromptTest {
         assertTrue(prompt.contains("override the writing-style line"))
         assertTrue(prompt.indexOf("British English") < prompt.indexOf("You edit a voice transcript"))
         assertTrue(prompt.contains("standard English"))
+    }
+
+    @Test
+    fun dictionaryRuleKeepsAnUnrelatedWord() {
+        val prompt = CleanupPrompt.system(WritingStyle.NORMAL)
+        assertTrue(prompt.contains("personal dictionary"))
+        assertFalse(prompt.contains("Apply the personal dictionary exactly"))
+        assertTrue(prompt.contains("sounds like it"))
+        assertTrue(prompt.contains("heard-as"))
+        assertTrue(prompt.contains("rare terms"))
+        assertTrue(prompt.contains("most dictations will not contain them"))
+        assertTrue(prompt.contains("When unsure, keep the word as heard"))
+        assertTrue(prompt.contains("Never replace a word with an unrelated dictionary term"))
+        assertTrue(prompt.contains("unless the word sounds like the term or matches a heard-as variant"))
+        assertTrue(
+            prompt.contains(
+                "\"we could put it in crimple\" → \"We could put it in crimple.\" " +
+                    "Not \"OSSFlow\" or \"Sissi\" when those words were not said.",
+            ),
+        )
+    }
+
+    @Test
+    fun dictionaryBlockSaysTermsAreRareAndGivesTheNegativeExample() {
+        val message = CleanupPrompt.user(
+            raw = "we could put it in crimple",
+            entries = listOf(
+                Term("Sissi"),
+                Term("OSSFlow", listOf("oss flow")),
+            ),
+        )
+        assertTrue(
+            message.startsWith(
+                "Personal dictionary (rare terms; most dictations will not contain any of these):",
+            ),
+        )
+        assertTrue(message.contains("- Sissi"))
+        assertTrue(message.contains("- OSSFlow (often heard as: oss flow)"))
+        assertTrue(message.contains("Only use one of these terms"))
+        assertTrue(message.contains("sounds like it"))
+        assertTrue(message.contains("heard-as variants"))
+        assertTrue(message.contains("When unsure, keep the word as heard"))
+        assertTrue(message.contains("Never replace a word with an unrelated dictionary term"))
+        assertTrue(
+            message.contains(
+                "Example: \"we could put it in crimple\" stays \"crimple\", not \"OSSFlow\" or \"Sissi\".",
+            ),
+        )
+        assertTrue(message.endsWith("Transcript:\nwe could put it in crimple"))
+        assertTrue(message.indexOf("Sissi") < message.indexOf("Transcript:"))
     }
 
     @Test

@@ -26,11 +26,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -202,6 +204,8 @@ private fun DeleteRow(onDelete: () -> Unit, content: @Composable (close: () -> U
 
 @Composable
 private fun TranscriptCard(transcript: TranscriptEntity, onClick: () -> Unit) {
+    var showOriginal by remember(transcript.id) { mutableStateOf(false) }
+    val rawDiffers = transcript.rawText.isNotEmpty() && transcript.rawText != transcript.text
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -209,6 +213,9 @@ private fun TranscriptCard(transcript: TranscriptEntity, onClick: () -> Unit) {
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(transcript.text, style = MaterialTheme.typography.bodyLarge)
+            if (rawDiffers && showOriginal) {
+                OriginalTranscript(transcript.rawText)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     formatWhen(transcript.createdAt),
@@ -230,8 +237,33 @@ private fun TranscriptCard(transcript: TranscriptEntity, onClick: () -> Unit) {
                     )
                 }
             }
+            if (rawDiffers) {
+                TextButton(
+                    onClick = { showOriginal = !showOriginal },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(
+                        if (showOriginal) "Hide original" else "Show original",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun OriginalTranscript(rawText: String) {
+    Text(
+        "Original",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        rawText,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 private fun formatWhen(epochMs: Long): String {
