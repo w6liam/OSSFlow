@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -42,10 +44,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
+import androidx.lifecycle.viewmodel.compose.viewModel
+import app.ossflow.R
 import app.ossflow.container
 import app.ossflow.data.TranscriptEntity
 import app.ossflow.logic.TimeSaved
@@ -63,12 +68,14 @@ private enum class DeleteDrag { Closed, Tab, Dismissed }
 @Composable
 fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
     val context = LocalContext.current
-    val dao = context.container.database.transcripts()
-    val items by dao.observe().collectAsState(initial = emptyList())
+    val viewModel: HistoryViewModel = viewModel(
+        factory = HistoryViewModel.factory(context.container.transcripts),
+    )
+    val items by viewModel.transcripts.collectAsState()
     val totals by context.container.settings.timeSaved.collectAsState(
         initial = app.ossflow.data.TimeSavedTotals(0L, 0L),
     )
-    val scope = rememberCoroutineScope()
+    var confirmDeleteAll by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -80,11 +87,9 @@ fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
             MinutesSavedCard(TimeSaved.minutes(totals.words, totals.speakingMs), onOpenImpact)
         }
         item {
-            Text(
-                "Transcriptions",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
+            TranscriptionsHeader(
+                canDelete = items.isNotEmpty(),
+                onDeleteAll = { confirmDeleteAll = true },
             )
         }
         if (items.isEmpty()) {
@@ -97,7 +102,7 @@ fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
             }
         }
         items(items, key = { it.id }) { transcript ->
-            DeleteRow(onDelete = { scope.launch { dao.delete(transcript.id) } }) { close ->
+            DeleteRow(onDelete = { viewModel.delete(transcript.id) }) { close ->
                 TranscriptCard(transcript) {
                     close()
                     val clipboard = context.getSystemService(ClipboardManager::class.java)
@@ -107,6 +112,67 @@ fun HistoryScreen(onMessage: (String) -> Unit, onOpenImpact: () -> Unit) {
             }
         }
     }
+    if (confirmDeleteAll) {
+        DeleteAllTranscriptsDialog(
+            onDismiss = { confirmDeleteAll = false },
+            onConfirm = {
+                confirmDeleteAll = false
+                viewModel.deleteAll()
+            },
+        )
+    }
+}
+
+@Composable
+private fun TranscriptionsHeader(canDelete: Boolean, onDeleteAll: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "Transcriptions",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        if (canDelete) {
+            TextButton(
+                onClick = onDeleteAll,
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(stringResource(R.string.delete_all))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteAllTranscriptsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_all_transcripts_title)) },
+        text = { Text(stringResource(R.string.delete_all_transcripts_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(stringResource(R.string.delete_all))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable

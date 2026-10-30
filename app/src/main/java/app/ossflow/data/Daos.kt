@@ -16,6 +16,9 @@ interface TranscriptDao {
 
     @Query("DELETE FROM transcripts WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("DELETE FROM transcripts")
+    suspend fun deleteAll()
 }
 
 @Dao

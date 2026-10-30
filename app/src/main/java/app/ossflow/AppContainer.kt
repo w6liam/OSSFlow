@@ -7,6 +7,7 @@ import app.ossflow.api.TranscriptionRouter
 import app.ossflow.audio.Recorder
 import app.ossflow.data.AppDatabase
 import app.ossflow.data.SettingsRepository
+import app.ossflow.data.TranscriptRepository
 import app.ossflow.dictation.DictationCoordinator
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     val database: AppDatabase = AppDatabase.create(appContext)
+    val transcripts: TranscriptRepository = TranscriptRepository(database.transcripts())
     val settings: SettingsRepository = SettingsRepository(appContext)
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
