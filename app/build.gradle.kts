@@ -21,8 +21,8 @@ android {
         applicationId = "app.ossflow"
         minSdk = 34
         targetSdk = 37
-        versionCode = 19
-        versionName = "1.5.2"
+        versionCode = 20
+        versionName = "1.5.3"
     }
 
     signingConfigs {
@@ -110,4 +110,5 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }
