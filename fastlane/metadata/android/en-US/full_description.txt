@@ -1,0 +1,17 @@
+OSSFlow is a free, open-source voice dictation app for Android 14 and newer. A floating bubble listens while you speak, then cleaned text is pasted into the app you are using.
+
+You bring your own API key. Transcription can use Grok speech-to-text, or any OpenAI-compatible transcription API. Optional cleanup uses an OpenAI-compatible chat model to drop fillers and false starts, repair obvious slips, and add punctuation. Writing style can be normal, formal, or informal, and you can add your own cleanup instructions.
+
+There is no account, and OSSFlow has no server of its own. Audio is sent only to the transcription host you set, over HTTPS, and the recording is deleted from the phone afterwards. Transcripts stay in History on the device. You can copy one, delete one, or delete all transcripts after a confirmation. API keys stay on the phone.
+
+A personal dictionary holds names and terms you want spelled correctly, up to 100 entries. A minutes-saved figure estimates typing time at 40 words per minute, minus the time you spent speaking.
+
+Setup needs the microphone, notifications, and either Display over other apps or Accessibility. Accessibility pastes into the field you are using. It does not paste into password fields. Sideloaded installs need Android's restricted settings allowed before those switches will stay on.
+
+OSSFlow is a free, open-source alternative to Wispr Flow and Granola Voice Typing for Android.
+
+The app is free software under the GNU General Public License, version 3 only.
+
+Website: https://ossflow.xyz
+Setup: https://ossflow.xyz/setup
+Source: https://github.com/w6liam/OSSFlow

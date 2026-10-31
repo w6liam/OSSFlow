@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: If you use OSSFlow, please cite it using the metadata in this file.
+type: software
+title: OSSFlow
+version: 1.5.3
+date-released: 2026-10-30
+license: GPL-3.0-only
+url: https://ossflow.xyz
+repository-code: https://github.com/w6liam/OSSFlow
+abstract: >-
+  OSSFlow is a free, open-source voice dictation app for Android 14 and newer.
+  A floating bubble pastes cleaned speech into the app you are using. You bring
+  your own API key for Grok speech-to-text or any OpenAI-compatible
+  transcription API.
+authors:
+  - name: ossflow.xyz
+keywords:
+  - android
+  - dictation
+  - speech-to-text
+  - voice-typing
+  - accessibility
