@@ -24,7 +24,16 @@ class CleanupClient(private val http: OkHttpClient) {
             .put(
                 "messages",
                 JSONArray()
-                    .put(message("system", CleanupPrompt.system(settings.writingStyle, settings.cleanupInstructions)))
+                    .put(
+                        message(
+                            "system",
+                            CleanupPrompt.system(
+                                settings.writingStyle,
+                                settings.cleanupInstructions,
+                                settings.keepProfanity,
+                            ),
+                        ),
+                    )
                     .put(message("user", CleanupPrompt.user(raw, terms))),
             )
         val request = Request.Builder()

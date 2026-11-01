@@ -1,0 +1,1 @@
+Cleanup edits dictated text as data, including profanity and questions, and pastes the raw transcript if the model refuses or rewrites it. Keep profanity is on by default.

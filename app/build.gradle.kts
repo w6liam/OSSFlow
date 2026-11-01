@@ -21,8 +21,8 @@ android {
         applicationId = "app.ossflow"
         minSdk = 34
         targetSdk = 37
-        versionCode = 20
-        versionName = "1.5.3"
+        versionCode = 21
+        versionName = "1.5.4"
     }
 
     signingConfigs {

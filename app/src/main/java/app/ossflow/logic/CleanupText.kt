@@ -9,8 +9,12 @@ object CleanupText {
     )
 
     fun withoutLabel(cleaned: String, raw: String): String {
-        val original = cleaned.trim()
-        var text = peel(original)
+        val trimmed = cleaned.trim()
+        val peeled = peel(trimmed)
+        val unwrapped = unwrapTranscript(peeled, raw.trim())
+        val hadWrapper = unwrapped != peeled
+        val original = if (hadWrapper) unwrapped else trimmed
+        var text = if (hadWrapper) peel(unwrapped) else peeled
         val spoken = raw.trim()
         var stripped = false
         repeat(3) {
@@ -23,6 +27,19 @@ object CleanupText {
             stripped = true
         }
         return text
+    }
+
+    private val transcriptWrapper = Regex("(?is)^<transcript>\\s*(.*?)\\s*</transcript>$")
+
+    /**
+     * Drops a transcript fence the model echoed around the edit.
+     * A dictation that itself begins with that tag is left unchanged.
+     */
+    private fun unwrapTranscript(text: String, raw: String): String {
+        if (raw.startsWith("<transcript", ignoreCase = true)) return text
+        val inner = transcriptWrapper.find(text)?.groupValues?.get(1)?.trim().orEmpty()
+        if (inner.isEmpty()) return text
+        return inner
     }
 
     private fun containsWord(spoken: String, word: String): Boolean =
