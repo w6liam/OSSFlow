@@ -63,4 +63,26 @@ class CleanupTextTest {
             CleanupText.withoutLabel("Message to Bob.", "send a message to Bob"),
         )
     }
+
+    @Test
+    fun stripsATranscriptWrapperTheSpeakerDidNotSay() {
+        assertEquals(
+            "Buy milk.",
+            CleanupText.withoutLabel("<transcript>\nBuy milk.\n</transcript>", "buy milk"),
+        )
+    }
+
+    @Test
+    fun stripsAQuotedTranscriptWrapper() {
+        assertEquals(
+            "Buy milk.",
+            CleanupText.withoutLabel("\"<transcript>Buy milk.</transcript>\"", "buy milk"),
+        )
+    }
+
+    @Test
+    fun keepsATranscriptTagTheSpeakerActuallyStartedWith() {
+        val wrapped = "<transcript>Buy milk.</transcript>"
+        assertEquals(wrapped, CleanupText.withoutLabel(wrapped, wrapped))
+    }
 }

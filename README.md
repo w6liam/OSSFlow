@@ -15,7 +15,7 @@ Inserted: Can you grab the blue oat milk on the way?
 | | |
 | --- | --- |
 | Platform | Android 14 and newer (minimum SDK 34) |
-| Current version | 1.5.3 (version code 20) |
+| Current version | 1.5.4 (version code 21) |
 | Package | `app.ossflow` |
 | Price | Free. [GPL-3.0 only](LICENSE) |
 | Account | None |
@@ -24,7 +24,7 @@ Inserted: Can you grab the blue oat milk on the way?
 
 ## Download
 
-Download and open [OSSFlow.apk](https://github.com/w6liam/OSSFlow/raw/main/OSSFlow.apk) (version 1.5.3). If the phone asks, allow your browser or Files to install unknown apps, then install OSSFlow.
+Download and open [OSSFlow.apk](https://github.com/w6liam/OSSFlow/raw/main/OSSFlow.apk) (version 1.5.4). If the phone asks, allow your browser or Files to install unknown apps, then install OSSFlow.
 
 The file in this repository is the signed release build.
 
@@ -33,7 +33,7 @@ The file in this repository is the signed release build.
 - Floating bubble. Tap to talk, tap again to finish. The bubble turns red while it is listening.
 - Cleaned text is pasted into the text field you are using, and copied to the clipboard.
 - History stays on the phone. Tap a row to copy it, swipe a row to delete it, or delete all transcripts after a confirmation.
-- Optional cleanup: fillers, false starts, obvious repairs, punctuation, and a writing style (normal, formal, or informal).
+- Optional cleanup: fillers, false starts, obvious repairs, punctuation, and a writing style (normal, formal, or informal). Keep profanity is on by default.
 - Personal dictionary for names and terms you want spelled correctly (up to 100 entries).
 - Minutes saved, from a typing pace of 40 words per minute minus the time you spent speaking.
 - Your API key. Grok speech-to-text, or any host that implements the OpenAI-compatible transcription API.
@@ -44,7 +44,7 @@ The file in this repository is the signed release build.
 1. Focus a text field so the keyboard is up, then tap the bubble.
 2. OSSFlow records on the phone: mono AAC, in an `.m4a` file in the app cache.
 3. The recording is sent over HTTPS to the transcription host in Settings. OSSFlow deletes that cache file after the dictation attempt finishes, including when transcription or cleanup fails. Tap the × on the bubble to discard a recording before it is sent.
-4. If cleanup is on, the transcript goes to an OpenAI-compatible chat completions endpoint. The model is instructed to return only the text you meant to type. If cleanup fails, the raw transcript is used.
+4. If cleanup is on, the transcript goes to an OpenAI-compatible chat completions endpoint. The model is instructed to edit that transcript as data and return only the text you meant to type, including profanity and any question or instruction you dictated. If cleanup fails, or the reply is a refusal or not a faithful edit, the raw transcript is used.
 5. Accessibility pastes the result into the focused field. The same text is placed on the clipboard and saved in History. If the paste does not land, the bubble says it was copied.
 
 Drag the idle bubble to move it. Drop it on **Snooze** at the bottom of the screen to hide it. **End snooze now** brings it back.
@@ -65,7 +65,7 @@ An OpenRouter address is rewritten to `https://openrouter.ai/api/v1` and sent on
 
 Cleanup is optional and separate. It calls `{base URL}/chat/completions`. The default model is `grok-4.20-0309-non-reasoning`, using the same API key and base URL as transcription. You can turn cleanup off, or set another base URL, key, and model. When cleanup uses its own key, **Test cleanup** checks that host's `/models` endpoint.
 
-**Custom Cleanup instructions** can name a dialect, for example `British English`. Those instructions override the writing style where they conflict. Writing style is normal, formal, or informal.
+**Custom Cleanup instructions** can name a dialect, for example `British English`. Those instructions override the writing style where they conflict. Writing style is normal, formal, or informal. **Keep profanity** is on by default, so swearing stays as spoken. Turn it off to let cleanup mask or soften those words.
 
 A personal dictionary holds up to 100 words, 50 characters each. When you add a word and a cleanup key is saved, OSSFlow asks the cleanup model for likely mishearings. Grok transcription receives the spellings as key terms. An OpenAI-compatible host receives them in a short vocabulary prompt. Cleanup is given the spelling and any heard-as phrases, and it is told to use a dictionary word only when the speech sounds like that word.
 

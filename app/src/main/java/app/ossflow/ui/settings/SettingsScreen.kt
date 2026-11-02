@@ -127,6 +127,10 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             draft = draft.copy(cleanupEnabled = enabled)
             scope.launch { repository.update { it.copy(cleanupEnabled = enabled) } }
         }
+        ToggleRow("Keep profanity", draft.keepProfanity) { keep ->
+            draft = draft.copy(keepProfanity = keep)
+            scope.launch { repository.update { it.copy(keepProfanity = keep) } }
+        }
         Text("Writing style", style = MaterialTheme.typography.bodyLarge)
         StylePicker(draft.writingStyle) { style ->
             draft = draft.copy(writingStyle = style)

@@ -103,6 +103,7 @@ class SettingsRepository(context: Context) {
             cleanupApiKey = secrets.getString(KEY_CLEANUP, "") ?: "",
             cleanupModel = prefs[CLEANUP_MODEL] ?: defaults.cleanupModel,
             cleanupInstructions = prefs[CLEANUP_INSTRUCTIONS] ?: defaults.cleanupInstructions,
+            keepProfanity = prefs[KEEP_PROFANITY] ?: defaults.keepProfanity,
             writingStyle = styleOf(prefs[STYLE]),
             bubbleX = prefs[BUBBLE_X] ?: -1,
             bubbleY = prefs[BUBBLE_Y] ?: -1,
@@ -121,6 +122,7 @@ class SettingsRepository(context: Context) {
         this[CLEANUP_URL] = settings.cleanupBaseUrl
         this[CLEANUP_MODEL] = settings.cleanupModel
         this[CLEANUP_INSTRUCTIONS] = settings.cleanupInstructions
+        this[KEEP_PROFANITY] = settings.keepProfanity
         this[STYLE] = settings.writingStyle.name
         this[BUBBLE_SNOOZED] = settings.bubbleSnoozed
         this[BUBBLE_WANTED] = settings.bubbleWanted
@@ -142,6 +144,7 @@ class SettingsRepository(context: Context) {
         private val CLEANUP_URL = stringPreferencesKey("cleanup_url")
         private val CLEANUP_MODEL = stringPreferencesKey("cleanup_model")
         private val CLEANUP_INSTRUCTIONS = stringPreferencesKey("cleanup_instructions")
+        private val KEEP_PROFANITY = booleanPreferencesKey("keep_profanity")
         private val STYLE = stringPreferencesKey("writing_style")
         private val BUBBLE_X = intPreferencesKey("bubble_x")
         private val BUBBLE_Y = intPreferencesKey("bubble_y")
