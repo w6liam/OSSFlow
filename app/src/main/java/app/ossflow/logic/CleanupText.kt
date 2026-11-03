@@ -1,6 +1,15 @@
 package app.ossflow.logic
 
 object CleanupText {
+    /**
+     * Turns a written escape, or a carriage return, into a real line break.
+     * A list then pastes with each item on its own line.
+     */
+    fun normalizeBreaks(text: String): String {
+        if (!text.contains('\\') && !text.contains('\r')) return text
+        return text.replace("\r\n", "\n").replace('\r', '\n').replace("\\n", "\n")
+    }
+
     private val leadingLabel = Regex(
         """(?i)^(?:#+\s*)?(?:here(?:'s| is)\s+)?(?:the\s+|your\s+|a\s+)?""" +
             """(?:cleaned\s+|final\s+|corrected\s+)?["'“”*]*""" +

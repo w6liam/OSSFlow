@@ -81,6 +81,16 @@ class CleanupTextTest {
     }
 
     @Test
+    fun escapedNewlinesBecomeRealLineBreaks() {
+        assertEquals(
+            "Can you buy:\n1. Apples",
+            CleanupText.normalizeBreaks("Can you buy:\\n1. Apples"),
+        )
+        assertEquals("Buy milk.", CleanupText.normalizeBreaks("Buy milk."))
+        assertEquals("One\nTwo", CleanupText.normalizeBreaks("One\r\nTwo"))
+    }
+
+    @Test
     fun keepsATranscriptTagTheSpeakerActuallyStartedWith() {
         val wrapped = "<transcript>Buy milk.</transcript>"
         assertEquals(wrapped, CleanupText.withoutLabel(wrapped, wrapped))

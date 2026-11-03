@@ -1,6 +1,7 @@
 package app.ossflow.logic
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TextSpliceTest {
@@ -32,5 +33,13 @@ class TextSpliceTest {
     @Test
     fun emptyInsertionLeavesTheFieldAlone() {
         assertEquals("Hello", TextSplice.splice("Hello", 0, 5, ""))
+    }
+
+    @Test
+    fun aListKeepsItsLineBreaks() {
+        val list = "Can you buy:\n1. Apples\n2. Bananas\n3. Any brand of oat milk"
+        assertEquals(list, TextSplice.splice("", -1, -1, list))
+        assertEquals("Hello $list", TextSplice.splice("Hello", -1, -1, list))
+        assertTrue(TextSplice.splice("Hello", 5, 5, list).contains("\n1. Apples\n2. Bananas\n"))
     }
 }

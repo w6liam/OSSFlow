@@ -65,6 +65,7 @@ class BubbleService : Service() {
     private var passwordFocused = false
     private var keyboardVisible = false
     private lateinit var recorder: Recorder
+    private var recordingPackage: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -241,6 +242,7 @@ class BubbleService : Service() {
 
     private fun startRecording() {
         if (BubbleRuntime.phase.value == BubblePhase.Working) return
+        recordingPackage = OSSFlowAccessibilityService.foregroundPackage()
         try {
             recorder.start()
             setPhase(BubblePhase.Recording, null)
@@ -268,9 +270,10 @@ class BubbleService : Service() {
         }
         setPhase(BubblePhase.Working, null)
         val coordinator = (application as OSSFlowApp).container.coordinator
+        val packageName = recordingPackage
         job = scope.launch {
             try {
-                val outcome = coordinator.process(recording.file, recording.durationMs)
+                val outcome = coordinator.process(recording.file, recording.durationMs, packageName)
                 val message = if (outcome.inserted) {
                     if (outcome.cleanupSkipped) "Inserted. Cleanup failed." else "Inserted"
                 } else {
@@ -295,6 +298,7 @@ class BubbleService : Service() {
 
     private fun cancelRecording() {
         if (BubbleRuntime.phase.value != BubblePhase.Recording) return
+        recordingPackage = null
         recorder.cancel()
         setPhase(BubblePhase.Idle, null)
         toast("Cancelled")
