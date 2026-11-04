@@ -1,20 +1,31 @@
 package app.ossflow.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -34,8 +45,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ossflow.container
+import app.ossflow.logic.AppStyles
 import app.ossflow.model.AppSettings
 import app.ossflow.model.SttProtocol
 import app.ossflow.model.WritingStyle
@@ -55,6 +68,8 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
     var revealCleanupKey by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf("") }
     var confirmReset by remember { mutableStateOf(false) }
+    var showStyleHelp by remember { mutableStateOf(false) }
+    var addingApp by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         draft = repository.flow.first()
@@ -70,6 +85,11 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             )
         }
         draft = repository.flow.first()
+    }
+
+    val saveOverrides: (Map<String, WritingStyle>) -> Unit = { next ->
+        draft = draft.copy(appStyleOverrides = next)
+        scope.launch { repository.update { it.copy(appStyleOverrides = next) } }
     }
 
     Column(
@@ -131,10 +151,34 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             draft = draft.copy(keepProfanity = keep)
             scope.launch { repository.update { it.copy(keepProfanity = keep) } }
         }
-        Text("Writing style", style = MaterialTheme.typography.bodyLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Writing style",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            IconButton(onClick = { showStyleHelp = true }) {
+                Icon(Icons.Filled.Info, contentDescription = "About writing style")
+            }
+        }
+        Text(
+            "Style changes tone and punctuation only. Meaning stays the same.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         StylePicker(draft.writingStyle) { style ->
             draft = draft.copy(writingStyle = style)
             scope.launch { repository.update { it.copy(writingStyle = style) } }
+        }
+        if (draft.writingStyle == WritingStyle.SMART) {
+            AppStyleSection(
+                overrides = draft.appStyleOverrides,
+                onChange = saveOverrides,
+                onAdd = { addingApp = true },
+            )
         }
         ToggleRow("Use the same API key and base URL", draft.cleanupSameCredentials) { same ->
             draft = draft.copy(cleanupSameCredentials = same)
@@ -218,6 +262,31 @@ fun SettingsScreen(onMessage: (String) -> Unit) {
             },
         )
     }
+
+    if (showStyleHelp) {
+        AlertDialog(
+            onDismissRequest = { showStyleHelp = false },
+            title = { Text("Writing style") },
+            text = {
+                Column(modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                    Text(STYLE_HELP)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showStyleHelp = false }) { Text("Close") }
+            },
+        )
+    }
+
+    if (addingApp) {
+        AddAppDialog(
+            onDismiss = { addingApp = false },
+            onAdd = { pkg, style ->
+                saveOverrides(AppStyles.withPackage(draft.appStyleOverrides, pkg, style))
+                addingApp = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -247,25 +316,221 @@ private fun ProtocolPicker(selected: SttProtocol, onSelect: (SttProtocol) -> Uni
 
 @Composable
 private fun StylePicker(selected: WritingStyle, onSelect: (WritingStyle) -> Unit) {
-    val options = listOf(WritingStyle.FORMAL, WritingStyle.NORMAL, WritingStyle.INFORMAL)
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, style ->
-            SegmentedButton(
-                selected = selected == style,
-                onClick = { onSelect(style) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-            ) {
+    val options = listOf(WritingStyle.OFF, WritingStyle.FORMAL, WritingStyle.INFORMAL, WritingStyle.SMART)
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        options.forEach { style ->
+            StyleOption(style = style, selected = selected == style, onSelect = { onSelect(style) })
+        }
+    }
+}
+
+@Composable
+private fun StyleOption(
+    style: WritingStyle,
+    selected: Boolean,
+    showSummary: Boolean = true,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Column(modifier = Modifier.padding(start = 4.dp)) {
+            Text(style.title, style = MaterialTheme.typography.bodyLarge)
+            if (showSummary) {
                 Text(
-                    when (style) {
-                        WritingStyle.FORMAL -> "Formal"
-                        WritingStyle.NORMAL -> "Normal"
-                        WritingStyle.INFORMAL -> "Informal"
+                    style.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppStyleSection(
+    overrides: Map<String, WritingStyle>,
+    onChange: (Map<String, WritingStyle>) -> Unit,
+    onAdd: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        SectionLabel("App styles")
+        Text(
+            "Tap a style to change it for that app. Apps that are not listed stay unchanged.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ToneHeading("Chat")
+        for (app in AppStyles.chat) {
+            AppStyleRow(app.name, AppStyles.selection(app, overrides)) { style ->
+                onChange(AppStyles.withApp(overrides, app, style))
+            }
+        }
+        ToneHeading("Work")
+        for (app in AppStyles.work) {
+            AppStyleRow(app.name, AppStyles.selection(app, overrides)) { style ->
+                onChange(AppStyles.withApp(overrides, app, style))
+            }
+        }
+        val extras = AppStyles.extras(overrides)
+        if (extras.isNotEmpty()) {
+            ToneHeading("Other apps")
+            for ((pkg, style) in extras) {
+                ExtraAppRow(
+                    packageName = pkg,
+                    style = style,
+                    onSelect = { chosen -> onChange(AppStyles.withPackage(overrides, pkg, chosen)) },
+                    onRemove = { onChange(AppStyles.withoutPackage(overrides, pkg)) },
+                )
+            }
+        }
+        OutlinedButton(onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Text("Add an app")
+        }
+    }
+}
+
+@Composable
+private fun ToneHeading(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+@Composable
+private fun AppStyleRow(name: String, style: WritingStyle, onSelect: (WritingStyle) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        StyleMenu(style, onSelect)
+    }
+}
+
+@Composable
+private fun ExtraAppRow(
+    packageName: String,
+    style: WritingStyle,
+    onSelect: (WritingStyle) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            packageName,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        StyleMenu(style, onSelect)
+        IconButton(onClick = onRemove) {
+            Icon(Icons.Filled.Delete, contentDescription = "Remove $packageName")
+        }
+    }
+}
+
+@Composable
+private fun StyleMenu(style: WritingStyle, onSelect: (WritingStyle) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }) { Text(style.title) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            toneChoices.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.title) },
+                    onClick = {
+                        open = false
+                        onSelect(option)
                     },
                 )
             }
         }
     }
 }
+
+@Composable
+private fun AddAppDialog(onDismiss: () -> Unit, onAdd: (String, WritingStyle) -> Unit) {
+    var packageName by remember { mutableStateOf("") }
+    var style by remember { mutableStateOf(WritingStyle.FORMAL) }
+    var error by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add an app") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    "Use the Android package name if the app is not in the list.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = packageName,
+                    onValueChange = {
+                        packageName = it
+                        error = ""
+                    },
+                    label = { Text("Package name") },
+                    placeholder = { Text("com.example.app") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                toneChoices.forEach { option ->
+                    StyleOption(
+                        style = option,
+                        selected = style == option,
+                        showSummary = false,
+                        onSelect = { style = option },
+                    )
+                }
+                if (error.isNotEmpty()) {
+                    Text(error, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val pkg = packageName.trim()
+                if (!AppStyles.isPackageName(pkg)) {
+                    error = "Enter a package name, such as com.example.app."
+                } else {
+                    onAdd(pkg, style)
+                }
+            }) { Text("Add") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+private val toneChoices = listOf(WritingStyle.OFF, WritingStyle.FORMAL, WritingStyle.INFORMAL)
+
+private const val STYLE_HELP =
+    "Cleanup fixes fillers, false starts, and obvious slips, then applies a writing style. " +
+        "Style changes tone and punctuation only. It does not change meaning, and it does not answer or refuse what you dictated.\n\n" +
+        "Off leaves the tone as you spoke it.\n\n" +
+        "Formal uses polished, professional wording, with complete sentences and no slang. It suits work messages and email.\n\n" +
+        "Informal uses relaxed, conversational wording, like a chat message.\n\n" +
+        "Smart is the default. It picks Formal or Informal from the app you are dictating into. " +
+        "Chat apps are informal: WhatsApp, Messages, Telegram, Signal, Messenger, Instagram, Snapchat, Discord, and X. " +
+        "Work apps are formal: Slack, Microsoft Teams, Gmail, Outlook, Google Docs, LinkedIn, Notion, and Jira. " +
+        "Any other app stays as you spoke it, the same as Off.\n\n" +
+        "You can change the style for an app when Smart is selected. OSSFlow does not send the app name to the cleanup model."
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {

@@ -288,6 +288,73 @@ class CleanupFidelityTest {
     }
 
     @Test
+    fun aSpokenShoppingListIsKeptWithRealLineBreaks() {
+        val raw = "can you buy one apples, two bananas, three any brand of oat milk"
+        val cleaned = "Can you buy:\n1. Apples\n2. Bananas\n3. Any brand of oat milk"
+        assertTrue(CleanupFidelity.accepts(raw, cleaned))
+        val selected = CleanupFidelity.choose(raw, cleaned, emptyList())
+        assertEquals(cleaned, selected.text)
+        assertFalse(selected.skipped)
+        assertTrue(selected.text.contains("\n1. Apples\n2. Bananas\n"))
+    }
+
+    @Test
+    fun aListWithMarkersAndAShortLeadInIsNotTreatedAsDivergence() {
+        val raw = "can you buy one apples, two bananas, three any brand of oat milk"
+        val cleaned = "Here is a list of things to buy:\n1. Apples\n2. Bananas\n3. Any brand of oat milk"
+        assertTrue(CleanupFidelity.accepts(raw, cleaned))
+        val bullets = "Can you buy:\n- Apples\n- Bananas\n- Any brand of oat milk"
+        assertTrue(CleanupFidelity.accepts(raw, bullets))
+    }
+
+    @Test
+    fun escapedNewlinesInAListBecomeRealLineBreaks() {
+        val raw = "can you buy one apples, two bananas, three any brand of oat milk"
+        val model = "Can you buy:\\n1. Apples\\n2. Bananas\\n3. Any brand of oat milk"
+        val selected = CleanupFidelity.choose(raw, model, emptyList())
+        assertEquals("Can you buy:\n1. Apples\n2. Bananas\n3. Any brand of oat milk", selected.text)
+        assertFalse(selected.skipped)
+        assertFalse(selected.text.contains("\\"))
+    }
+
+    @Test
+    fun aFormalRewriteOfChatSpeechIsKept() {
+        assertTrue(
+            CleanupFidelity.accepts(
+                "u free tmrw",
+                "Are you free tomorrow?",
+            ),
+        )
+        assertTrue(
+            CleanupFidelity.accepts(
+                "yo lemme know if ur free tmrw asap thx",
+                "Could you please let me know if you are free tomorrow as soon as possible? Thank you.",
+            ),
+        )
+        assertTrue(
+            CleanupFidelity.accepts(
+                "lemme know if you can make dinner",
+                "Let me know if you can make dinner.",
+            ),
+        )
+    }
+
+    @Test
+    fun aQuantityStaysProseAndAListShapedAnswerIsDiscarded() {
+        assertTrue(CleanupFidelity.accepts("I need two bananas", "I need two bananas."))
+        val poem = "1. The sea is a sheet of hammered tin\n" +
+            "2. Waves argue with the pier all night\n" +
+            "3. Gulls file their complaints in salt"
+        assertFalse(CleanupFidelity.accepts("write me a poem about the sea", poem))
+        assertFalse(
+            CleanupFidelity.accepts(
+                "can you buy one apples, two bananas, three any brand of oat milk",
+                "I'm sorry, but I won't write that shopping list.",
+            ),
+        )
+    }
+
+    @Test
     fun aRefusalThatMentionsADictionaryTermIsStillDiscarded() {
         val selected = CleanupFidelity.choose(
             raw = vulgar,

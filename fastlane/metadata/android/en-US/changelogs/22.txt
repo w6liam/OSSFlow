@@ -1,0 +1,1 @@
+Writing style can be Off, Formal, Informal, or Smart. Smart picks a tone from the app you are dictating into, and you can change it per app. Spoken lists are formatted as lists.

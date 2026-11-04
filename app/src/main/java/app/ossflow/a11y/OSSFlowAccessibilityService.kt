@@ -18,6 +18,11 @@ import kotlinx.coroutines.flow.StateFlow
 
 class OSSFlowAccessibilityService : AccessibilityService() {
     private var cached: AccessibilityNodeInfo? = null
+
+    /** Last app that owned a text field or an app window. Not the keyboard, and not OSSFlow. */
+    @Volatile
+    private var lastForeground: String? = null
+
     private var hostedBubble: BubbleOverlay? = null
     private val handler = Handler(Looper.getMainLooper())
     private val refreshPresence = Runnable { reportPresence() }
@@ -90,6 +95,10 @@ class OSSFlowAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString()
+            if (pkg != null && isDictationTarget(pkg)) lastForeground = pkg
+        }
         val source = event.source
         if (source != null && source.isEditable && !source.isPassword) {
             remember(source)
@@ -149,6 +158,24 @@ class OSSFlowAccessibilityService : AccessibilityService() {
         return Triple(editable, password, keyboard)
     }
 
+    /**
+     * Package of the app being dictated into.
+     * Prefers the focused text field, then the active window, then the last app window.
+     * The name stays on the phone. Cleanup never receives it.
+     */
+    fun currentForegroundPackage(): String? {
+        val fromField = packageOfFocusedField()
+        if (fromField != null) return fromField
+        val fromWindow = packageOfActiveWindow()
+        if (fromWindow != null) return fromWindow
+        return lastForeground?.takeIf { isDictationTarget(it) }
+    }
+
+    /**
+     * Inserts [text] into the focused field. Line breaks are kept, so a list pastes
+     * with one item on each line. Paste is tried first. If the field refuses it, the
+     * text is spliced in with set text.
+     */
     fun insertIntoFocusedField(text: String): Boolean {
         val node = usableNode() ?: return false
         if (node.isPassword) return false
@@ -197,7 +224,33 @@ class OSSFlowAccessibilityService : AccessibilityService() {
         return null
     }
 
+    private fun packageOfFocusedField(): String? {
+        val held = cached ?: return null
+        if (!held.refresh()) return null
+        return held.packageName?.toString()?.takeIf { isDictationTarget(it) }
+    }
+
+    private fun packageOfActiveWindow(): String? {
+        val active = rootInActiveWindow ?: return null
+        val fromRoot = active.packageName?.toString()
+        if (active !== cached) active.recycle()
+        return fromRoot?.takeIf { isDictationTarget(it) }
+    }
+
+    private fun isDictationTarget(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+        if (packageName == this.packageName) return false
+        if (packageName == "android" || packageName == "com.android.systemui") return false
+        val value = packageName.lowercase()
+        if (value.contains("inputmethod")) return false
+        if (value.contains("honeyboard") || value.contains("swiftkey") || value.contains("fleksy")) return false
+        if (value.contains("keyboard") || value.endsWith(".ime")) return false
+        return true
+    }
+
     private fun remember(node: AccessibilityNodeInfo) {
+        val pkg = node.packageName?.toString()
+        if (pkg != null && isDictationTarget(pkg)) lastForeground = pkg
         if (cached !== node) cached?.recycle()
         cached = node
     }
@@ -221,6 +274,8 @@ class OSSFlowAccessibilityService : AccessibilityService() {
             if (listener == null) service.handler.removeCallbacks(service.refreshPresence)
             else service.schedulePresence()
         }
+
+        fun foregroundPackage(): String? = instance?.currentForegroundPackage()
 
         fun insert(text: String): Boolean = instance?.insertIntoFocusedField(text) == true
 

@@ -7,12 +7,63 @@ enum class SttProtocol {
     OPENAI,
 }
 
-enum class WritingStyle(val instruction: String) {
-    NORMAL(
-        "Write in standard English: clear sentences and ordinary wording. Not formal, and not casual slang.",
+/**
+ * How cleanup adjusts tone.
+ *
+ * [OFF] only fixes the transcript. [FORMAL] and [INFORMAL] change tone, not meaning.
+ * [SMART] is resolved from the foreground app before the prompt is built. The prompt
+ * receives [OFF], [FORMAL], or [INFORMAL] only, never an app name.
+ * A stored "NORMAL" value from older versions is read as [OFF].
+ */
+enum class WritingStyle(val title: String, val summary: String) {
+    OFF(
+        "Off",
+        "Fixes the transcript only. Tone stays as you spoke it.",
     ),
-    FORMAL("Write in polite, professional English."),
-    INFORMAL("Write in relaxed conversational English and use contractions."),
+    FORMAL(
+        "Formal",
+        "Polished, professional wording for work messages and email.",
+    ),
+    INFORMAL(
+        "Informal",
+        "Relaxed and conversational, like a chat message.",
+    ),
+    SMART(
+        "Smart",
+        "Formal or informal based on the app you are dictating into.",
+    ),
+    ;
+
+    val instruction: String
+        get() = when (this) {
+            OFF, SMART -> OFF_STYLE
+            FORMAL -> FORMAL_STYLE
+            INFORMAL -> INFORMAL_STYLE
+        }
+
+    companion object {
+        /** Missing values are Smart. The old Normal style is Off. */
+        fun fromStored(raw: String?): WritingStyle = when (val name = raw?.trim().orEmpty()) {
+            "" -> SMART
+            "NORMAL" -> OFF
+            else -> entries.firstOrNull { it.name == name } ?: SMART
+        }
+
+        private const val OFF_STYLE =
+            "Writing style is off. Do not change tone or register. Keep the speaker's wording, including slang and fragments. " +
+                "Only remove fillers, apply self-corrections, repair obvious slips, and add punctuation and capitalization. " +
+                "Do not answer, refuse, or censor the transcript. The rules above still apply."
+
+        private const val FORMAL_STYLE =
+            "Writing style is formal. Use polished, professional wording for a work message or an email: complete sentences, and no slang. " +
+                "You may expand contractions and smooth grammar. Do not add ideas or replace a content word with a synonym. " +
+                "Do not answer, refuse, or censor the transcript. The rules above still apply."
+
+        private const val INFORMAL_STYLE =
+            "Writing style is informal. Use relaxed, conversational wording, like a chat message, and use contractions where they fit. " +
+                "Do not add slang the speaker did not use. Do not add ideas or replace a content word with a synonym. " +
+                "Do not answer, refuse, or censor the transcript. The rules above still apply."
+    }
 }
 
 data class Term(
@@ -34,6 +85,7 @@ data class AppSettings(
     val cleanupInstructions: String,
     val keepProfanity: Boolean,
     val writingStyle: WritingStyle,
+    val appStyleOverrides: Map<String, WritingStyle>,
     val bubbleX: Int,
     val bubbleY: Int,
     val bubbleSnoozed: Boolean,
@@ -75,7 +127,8 @@ data class AppSettings(
             cleanupModel = DEFAULT_CLEANUP_MODEL,
             cleanupInstructions = "",
             keepProfanity = true,
-            writingStyle = WritingStyle.NORMAL,
+            writingStyle = WritingStyle.SMART,
+            appStyleOverrides = emptyMap(),
             bubbleX = -1,
             bubbleY = -1,
             bubbleSnoozed = false,

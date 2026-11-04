@@ -12,13 +12,19 @@ import app.ossflow.model.WritingStyle
  */
 object CleanupPrompt {
     /**
-     * System message: repair rules, self-corrections, [style], profanity handling, and any custom instructions.
-     *
-     * Blank [instructions] are omitted. Other text is placed first and overrides [style] where
-     * they conflict. [keepProfanity] tells the model to leave swearing, slurs, and other offensive
-     * words exactly as spoken. When it is false, the model may mask or soften those words.
-     * The model reply is still only the cleaned dictation.
-     */
+ * System message: repair rules, list formatting, self-corrections, [style], profanity handling,
+ * and any custom instructions.
+ *
+ * Blank [instructions] are omitted. Other text is placed first and overrides the writing-style
+ * line where they conflict. They do not override the transcript fence, the profanity rule,
+ * or the rule that the model must not answer. [keepProfanity] tells the model to leave swearing,
+ * slurs, and other offensive words exactly as spoken. When it is false, the model may mask or
+ * soften those words. The model reply is still only the cleaned dictation.
+ *
+ * [style] adjusts tone and punctuation only. [WritingStyle.SMART] uses the same line as
+ * [WritingStyle.OFF]. Callers resolve Smart to Off, Formal, or Informal first, so an app
+ * package name never appears here.
+ */
     fun system(style: WritingStyle, instructions: String = "", keepProfanity: Boolean = true): String =
         withCustomInstructions(editRules(style, keepProfanity), instructions)
 
@@ -103,7 +109,25 @@ object CleanupPrompt {
         if (keepProfanity) {
             append("\n- \"you fuck yourself you silly cunt\" → \"You fuck yourself, you silly cunt.\"")
         }
+        append("\n")
+        append(listExamples)
     }
+
+    private val listExamples: String =
+        "- \"can you buy one apples, two bananas, three any brand of oat milk\" → \"Can you buy:\n" +
+            "1. Apples\n" +
+            "2. Bananas\n" +
+            "3. Any brand of oat milk\"\n" +
+            "- \"first send the invoice, then ping Alex, then book the room\" → \"1. Send the invoice\n" +
+            "2. Ping Alex\n" +
+            "3. Book the room\"\n" +
+            "- \"bullet point call the dentist, bullet point email the invoice\" → \"- Call the dentist\n" +
+            "- Email the invoice\"\n" +
+            "- \"buy milk, new line bread, new line eggs\" → \"Buy:\n" +
+            "- Milk\n" +
+            "- Bread\n" +
+            "- Eggs\"\n" +
+            "- \"I need two bananas\" → \"I need two bananas.\""
 
     /**
      * Spaces out a transcript tag typed or heard inside the dictation.
@@ -126,8 +150,12 @@ object CleanupPrompt {
         "Remove filler words and sounds such as um, uh, er, ah, and hmm, and filler phrases such as \"you know\" when they do not change the meaning.",
         "Apply self-corrections. On a false start, a restart, or a correction such as \"no\", \"sorry\", \"I mean\", \"actually\", or \"scratch that\", drop the superseded words and keep only the final intent. Remove fillers from the words you keep.",
         "Repair speech the speaker clearly meant: fill in an obviously missing word, fix a misheard or garbled word, and fix agreement or tense slips. Do not use a personal-dictionary term for that unless the word sounds like the term or matches a heard-as variant.",
-        "Stay faithful. Do not add ideas, facts, or requests. Do not change meaning, tone, or register. If the intent is genuinely unclear, keep the original wording.",
+        "Stay faithful. Do not add ideas, facts, or requests. Do not change meaning. Adjust tone only as the writing-style line says. Do not replace a content word with a synonym. If the intent is genuinely unclear, keep the original wording.",
         "Add punctuation and capitalization.",
+        "When the speaker dictates a list, format it as a list. Put a real line break before each item, so the list pastes with each item on its own line.",
+        "A list is a series of items. Spoken numbers such as one, two, three, or first, second, and then, start a new item when they introduce that series. The words bullet point or new line also start a new item.",
+        "A lead-in such as buy, need, or list, followed by comma-separated items, is a list. Keep the lead-in as its own line ending with a colon, then put one item on each line. Number the items when the speaker numbered them. Use a bullet when the speaker asked for bullet points.",
+        "Do not turn an ordinary sentence into a list. A number that is a quantity stays in the sentence. Two bananas is not item two unless the speaker is counting items. When you are unsure, leave the text as prose.",
         "Do not summarize. Do not drop a request the speaker actually made.",
         "Apply a personal dictionary term only when the transcript contains something that sounds like it, or that matches one of its heard-as variants. These are rare terms, and most dictations will not contain them. When unsure, keep the word as heard. Never replace a word with an unrelated dictionary term.",
         "Output only the final text. No label, no quotes, and no preamble.",

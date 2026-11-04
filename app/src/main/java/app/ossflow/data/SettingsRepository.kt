@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import app.ossflow.logic.AppStyles
 import app.ossflow.model.AppSettings
 import app.ossflow.model.SttProtocol
 import app.ossflow.model.WritingStyle
@@ -104,7 +105,8 @@ class SettingsRepository(context: Context) {
             cleanupModel = prefs[CLEANUP_MODEL] ?: defaults.cleanupModel,
             cleanupInstructions = prefs[CLEANUP_INSTRUCTIONS] ?: defaults.cleanupInstructions,
             keepProfanity = prefs[KEEP_PROFANITY] ?: defaults.keepProfanity,
-            writingStyle = styleOf(prefs[STYLE]),
+            writingStyle = WritingStyle.fromStored(prefs[STYLE]),
+            appStyleOverrides = AppStyles.decode(prefs[APP_STYLES]),
             bubbleX = prefs[BUBBLE_X] ?: -1,
             bubbleY = prefs[BUBBLE_Y] ?: -1,
             bubbleSnoozed = prefs[BUBBLE_SNOOZED] ?: false,
@@ -124,15 +126,13 @@ class SettingsRepository(context: Context) {
         this[CLEANUP_INSTRUCTIONS] = settings.cleanupInstructions
         this[KEEP_PROFANITY] = settings.keepProfanity
         this[STYLE] = settings.writingStyle.name
+        this[APP_STYLES] = AppStyles.encode(settings.appStyleOverrides)
         this[BUBBLE_SNOOZED] = settings.bubbleSnoozed
         this[BUBBLE_WANTED] = settings.bubbleWanted
     }
 
     private fun protocolOf(raw: String?): SttProtocol =
         SttProtocol.entries.firstOrNull { it.name == raw } ?: SttProtocol.GROK
-
-    private fun styleOf(raw: String?): WritingStyle =
-        WritingStyle.entries.firstOrNull { it.name == raw } ?: WritingStyle.NORMAL
 
     companion object {
         private val STT_URL = stringPreferencesKey("stt_url")
@@ -146,6 +146,7 @@ class SettingsRepository(context: Context) {
         private val CLEANUP_INSTRUCTIONS = stringPreferencesKey("cleanup_instructions")
         private val KEEP_PROFANITY = booleanPreferencesKey("keep_profanity")
         private val STYLE = stringPreferencesKey("writing_style")
+        private val APP_STYLES = stringPreferencesKey("app_style_overrides")
         private val BUBBLE_X = intPreferencesKey("bubble_x")
         private val BUBBLE_Y = intPreferencesKey("bubble_y")
         private val BUBBLE_SNOOZED = booleanPreferencesKey("bubble_snoozed")

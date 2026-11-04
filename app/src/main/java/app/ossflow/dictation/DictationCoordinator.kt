@@ -9,6 +9,7 @@ import app.ossflow.api.TranscriptionClient
 import app.ossflow.data.AppDatabase
 import app.ossflow.data.SettingsRepository
 import app.ossflow.data.TranscriptEntity
+import app.ossflow.logic.AppStyles
 import app.ossflow.logic.CleanupFidelity
 import app.ossflow.logic.DictionaryTerms
 import app.ossflow.logic.TimeSaved
@@ -25,7 +26,7 @@ class DictationCoordinator(
     private val transcription: TranscriptionClient,
     private val cleanup: CleanupClient,
 ) {
-    suspend fun process(file: File, durationMs: Long): DictationOutcome {
+    suspend fun process(file: File, durationMs: Long, packageName: String? = null): DictationOutcome {
         if (!file.exists() || file.length() == 0L) error("Recording was empty.")
         val settings = settingsRepository.flow.first()
         val terms = database.dictionary().all().map { it.toTerm() }
@@ -36,7 +37,8 @@ class DictationCoordinator(
         var cleanupSkipped = false
         if (settings.cleanupEnabled) {
             try {
-                val selected = CleanupFidelity.choose(raw, cleanup.clean(raw, terms, settings), terms)
+                val style = AppStyles.resolve(settings.writingStyle, packageName, settings.appStyleOverrides)
+                val selected = CleanupFidelity.choose(raw, cleanup.clean(raw, terms, settings, style), terms)
                 text = selected.text
                 cleanupSkipped = selected.skipped
             } catch (_: Exception) {

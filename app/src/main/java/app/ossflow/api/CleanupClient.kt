@@ -5,6 +5,7 @@ import app.ossflow.logic.CleanupPrompt
 import app.ossflow.logic.HeardAsPrompt
 import app.ossflow.model.AppSettings
 import app.ossflow.model.Term
+import app.ossflow.model.WritingStyle
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,7 +14,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class CleanupClient(private val http: OkHttpClient) {
-    suspend fun clean(raw: String, terms: List<Term>, settings: AppSettings): String {
+    suspend fun clean(raw: String, terms: List<Term>, settings: AppSettings, style: WritingStyle): String {
         val base = ApiUrls.normalize(settings.effectiveCleanupBaseUrl)
         ApiUrls.requireHttps(base)
         val key = settings.effectiveCleanupApiKey
@@ -28,7 +29,7 @@ class CleanupClient(private val http: OkHttpClient) {
                         message(
                             "system",
                             CleanupPrompt.system(
-                                settings.writingStyle,
+                                style,
                                 settings.cleanupInstructions,
                                 settings.keepProfanity,
                             ),
